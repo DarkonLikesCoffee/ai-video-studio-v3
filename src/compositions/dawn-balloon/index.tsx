@@ -1,4 +1,5 @@
 import React from "react";
+import {useCurrentFrame} from "remotion";
 import {AbsoluteFill} from "remotion";
 import {ValleyLiftOff,SideDrift,CloudRise} from "./Scenes";
 
