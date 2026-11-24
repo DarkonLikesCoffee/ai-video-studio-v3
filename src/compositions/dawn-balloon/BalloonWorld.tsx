@@ -1,5 +1,6 @@
 import React, {useMemo} from "react";
-import {interpolate, useCurrentFrame} from "remotion";
+import {useCurrentFrame} from "remotion";
+import {useThree} from "@react-three/fiber";
 import * as THREE from "three";
 import {ThreeScene} from "../../shared/three-scene";
 
@@ -152,7 +153,7 @@ const Sun:React.FC=()=> <group position={[12,13,-35]}>
 
 const AnimatedCamera:React.FC<{shot:Shot;frame:number}> = ({shot,frame}) => {
   const t=frame;
-  const {camera}=require("@react-three/fiber").useThree() as {camera:THREE.Camera & {position:THREE.Vector3}};
+  const {camera}=useThree();
   if(shot==="valley"){
     const p=smooth(0,209,t);
     camera.position.set(0+2.8*p,2.6+6.2*p,15-4*p);
