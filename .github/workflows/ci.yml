@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check-and-still:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - name: Render one 1080p ThreeSmoke still (swangle)
+        run: |
+          /usr/bin/time -f "THREESMOKE_STILL_SECONDS=%e" npm run still -- ThreeSmoke 30
+          mkdir -p out/ci-artifacts
+          frame=$(find out/review/ThreeSmoke -type f -name "*.png" -print -quit)
+          test -n "$frame"
+          cp "$frame" out/ci-artifacts/ThreeSmoke-frame-30.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: threesmoke-render-review
+          path: out/ci-artifacts/
+          if-no-files-found: error
+          retention-days: 7

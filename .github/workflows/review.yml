@@ -1,0 +1,68 @@
+name: Review render
+
+on:
+  push:
+    branches:
+      - "review/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-review:
+    if: contains(github.event.head_commit.message, 'composition=')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read review inputs from commit message
+        id: inputs
+        shell: bash
+        run: |
+          MESSAGE="$(git log -1 --pretty=%B)"
+          get_value() { printf '%s\n' "$MESSAGE" | grep -oE "$1=[^[:space:]]+" | tail -1 | cut -d= -f2-; }
+          COMPOSITION="$(get_value composition)"
+          FRAMES="$(get_value frames)"
+          ROUND="$(get_value round)"
+          FINAL="$(get_value final)"
+          [[ "$COMPOSITION" =~ ^[A-Za-z0-9_-]+$ ]]
+          test -n "$COMPOSITION" && test -n "$FRAMES" && test -n "$ROUND"
+          [[ "$FRAMES" =~ ^[0-9,]+$ ]]
+          [[ "$ROUND" =~ ^[0-9]+$ ]]
+          [[ "$FINAL" == "true" || "$FINAL" == "false" ]]
+          echo "composition=$COMPOSITION" >> "$GITHUB_OUTPUT"
+          echo "frames=$FRAMES" >> "$GITHUB_OUTPUT"
+          echo "round=$ROUND" >> "$GITHUB_OUTPUT"
+          echo "final=$FINAL" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Render selected still frames (swangle)
+        env:
+          REVIEW_ROUND: ${{ steps.inputs.outputs.round }}
+        run: npm run still -- "${{ steps.inputs.outputs.composition }}" "${{ steps.inputs.outputs.frames }}"
+      - name: Render contact sheet (swangle)
+        run: npm run sheet -- "${{ steps.inputs.outputs.composition }}"
+      - name: Render final MP4 (swangle), when requested
+        if: steps.inputs.outputs.final == 'true'
+        run: |
+          mkdir -p out/review-artifacts
+          /usr/bin/time -f "FINAL_MP4_RENDER_SECONDS=%e" -o out/review-artifacts/render-time.txt npm run render -- "${{ steps.inputs.outputs.composition }}"
+          cp "out/${{ steps.inputs.outputs.composition }}.mp4" out/review-artifacts/
+      - name: Collect review images
+        run: |
+          mkdir -p out/review-artifacts
+          cp -R "out/review/${{ steps.inputs.outputs.composition }}/${{ steps.inputs.outputs.round }}" out/review-artifacts/frames
+          cp -R "out/review/${{ steps.inputs.outputs.composition }}/contact-sheet" out/review-artifacts/contact-sheet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-${{ steps.inputs.outputs.composition }}-round-${{ steps.inputs.outputs.round }}
+          path: out/review-artifacts/
+          if-no-files-found: error
+          retention-days: 7
