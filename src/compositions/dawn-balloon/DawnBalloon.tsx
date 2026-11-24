@@ -4,13 +4,6 @@ import {TransitionSeries, linearTiming} from "@remotion/transitions";
 import {fade} from "@remotion/transitions/fade";
 import {ValleyLiftOff, SideDrift, CloudRise} from "./Scenes";
 
-const ShotFade:React.FC=()=>(
-  <TransitionSeries.Transition
-    presentation={fade()}
-    timing={linearTiming({durationInFrames:18})}
-  />
-);
-
 export const DawnBalloon:React.FC=()=>{
   const frame=useCurrentFrame();
   const audioVolume=interpolate(
@@ -24,11 +17,17 @@ export const DawnBalloon:React.FC=()=>{
       <TransitionSeries.Sequence durationInFrames={210}>
         <ValleyLiftOff/>
       </TransitionSeries.Sequence>
-      <ShotFade/>
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={linearTiming({durationInFrames:18})}
+      />
       <TransitionSeries.Sequence durationInFrames={210}>
         <SideDrift/>
       </TransitionSeries.Sequence>
-      <ShotFade/>
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={linearTiming({durationInFrames:18})}
+      />
       <TransitionSeries.Sequence durationInFrames={216}>
         <CloudRise/>
       </TransitionSeries.Sequence>
