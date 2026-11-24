@@ -2,6 +2,7 @@ import React, {useMemo} from "react";
 import {useCurrentFrame} from "remotion";
 import * as THREE from "three";
 import {ThreeCanvas} from "@remotion/three";
+import {useThree} from "@react-three/fiber";
 
 type Vec3 = [number, number, number];
 type Shot = "valley" | "tracking" | "crane";
@@ -151,22 +152,22 @@ const Sun:React.FC=()=> <group position={[12,13,-35]}>
 </group>;
 
 const AnimatedCamera:React.FC<{shot:Shot;frame:number}> = ({shot,frame}) => {
-  const t=frame;
-  const valley=shot==="valley" ? smooth(0,209,t) : 0;
-  const tracking=shot==="tracking" ? t/209 : 0;
-  const crane=shot==="crane" ? smooth(0,179,t) : 0;
-  const angle=THREE.MathUtils.degToRad(-20+40*tracking);
+  const {camera}=useThree();
+  const p=shot==="crane" ? smooth(0,179,frame) : shot==="valley" ? smooth(0,209,frame) : frame/209;
+  const angle=THREE.MathUtils.degToRad(-20+40*p);
   const position:Vec3=shot==="valley"
-    ? [2.8*valley,2.6+6.2*valley,15-4*valley]
+    ? [2.8*p,2.6+6.2*p,15-4*p]
     : shot==="tracking"
-      ? [-8+9*tracking,5.8+1.4*tracking,12*Math.sin(angle)+8]
-      : [5+7*crane,11+8*crane,14+10*crane];
+      ? [-8+9*p,5.8+1.4*p,12*Math.sin(angle)+8]
+      : [5+7*p,11+8*p,14+10*p];
   const target:Vec3=shot==="valley"
-    ? [1.8*valley,5+7*valley,-3]
+    ? [1.8*p,5+7*p,-3]
     : shot==="tracking"
-      ? [.7+t/30*.52,7.2+t/30*.31,-1.2]
-      : [2+t/30*.52,8.8+t/30*.31,-5];
-  return <perspectiveCamera makeDefault position={position} fov={38} onUpdate={camera=>camera.lookAt(...target)}/>;
+      ? [.7+frame/30*.52,7.2+frame/30*.31,-1.2]
+      : [2+frame/30*.52,8.8+frame/30*.31,-5];
+  camera.position.set(...position);
+  camera.lookAt(...target);
+  return null;
 };
 
 export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,globalStart}) => {
