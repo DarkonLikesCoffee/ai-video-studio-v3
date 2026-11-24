@@ -59,7 +59,7 @@ const MountainRange:React.FC<{frame:number;layer:number}> = ({frame,layer}) => {
   });
   return <group>{items.map(m=><group key={m.seed}>
     <Mountain position={[m.x,-1+m.height/2,z]} scale={[m.width,m.height/2,m.width*.75]} seed={m.seed} far={layer>0}/>
-    <SnowCap position={[m.x,-1+m.height*.9,z]} scale={[m.width*.44,m.height*.1,m.width*.36]}/>
+    <SnowCap position={[m.x,-1+m.height*.96,z]} scale={[m.width*.17,m.height*.12,m.width*.14]}/>
   </group>)}</group>;
 };
 
