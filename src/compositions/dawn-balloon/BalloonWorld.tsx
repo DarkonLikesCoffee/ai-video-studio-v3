@@ -70,17 +70,17 @@ const Envelope:React.FC=()=>{
     makeEnvelopeSegment(2.03,.60),
     makeEnvelopeSegment(2.63,Math.PI-2.63)
   ],[]);
-  return <group position={[0,3.15,0]} scale={[1.22,1.72,1.08]}>
+  return <group position={[0,3.15,0]} scale={[1.58,1.5,1.16]}>
     <mesh geometry={bands[0]!}><meshStandardMaterial color="#d78b58" roughness={.72} flatShading/></mesh>
     <mesh geometry={bands[1]!} scale={[1.003,1.003,1.003]}><meshStandardMaterial color="#e9bc81" roughness={.78} flatShading/></mesh>
     <mesh geometry={bands[2]!} scale={[1.004,1.004,1.004]}><meshStandardMaterial color="#b96c51" roughness={.78} flatShading/></mesh>
     <mesh geometry={bands[3]!} scale={[1.005,1.005,1.005]}><meshStandardMaterial color="#9b5b48" roughness={.8} flatShading/></mesh>
     <mesh position={[0,-1.61,0]}>
-      <cylinderGeometry args={[.46,.54,.16,12]}/>
+      <cylinderGeometry args={[.50,.58,.16,12]}/>
       <meshStandardMaterial color="#6b4539" roughness={.8}/>
     </mesh>
     <mesh position={[0,-1.70,0]}>
-      <torusGeometry args={[.53,.06,5,14]}/>
+      <torusGeometry args={[.56,.06,5,14]}/>
       <meshStandardMaterial color="#d9aa75" metalness={.25} roughness={.45}/>
     </mesh>
   </group>;
@@ -88,10 +88,10 @@ const Envelope:React.FC=()=>{
 
 const BasketRig:React.FC=()=>{
   const ropes=[
-    {start:[-.48,1.48,-.42] as Vec3,end:[-.50,-.57,-.42] as Vec3},
-    {start:[.48,1.48,-.42] as Vec3,end:[.50,-.57,-.42] as Vec3},
-    {start:[-.48,1.48,.42] as Vec3,end:[-.50,-.57,.42] as Vec3},
-    {start:[.48,1.48,.42] as Vec3,end:[.50,-.57,.42] as Vec3}
+    {start:[-.55,1.62,-.45] as Vec3,end:[-.52,.12,-.45] as Vec3},
+    {start:[.55,1.62,-.45] as Vec3,end:[.52,.12,-.45] as Vec3},
+    {start:[-.55,1.62,.45] as Vec3,end:[-.52,.12,.45] as Vec3},
+    {start:[.55,1.62,.45] as Vec3,end:[.52,.12,.45] as Vec3}
   ];
   return <group>
     {ropes.map((rope,i)=>{
@@ -111,29 +111,29 @@ const BasketRig:React.FC=()=>{
         <meshStandardMaterial color="#463d39" roughness={.8}/>
       </mesh>;
     })}
-    <mesh position={[0,-.99,0]}>
-      <boxGeometry args={[1.05,.82,.94]}/>
+    <mesh position={[0,-.205,0]}>
+      <boxGeometry args={[1.05,.65,.94]}/>
       <meshStandardMaterial color="#805337" roughness={.9} flatShading/>
     </mesh>
-    <mesh position={[0,-.57,0]}>
-      <boxGeometry args={[1.16,.12,1.04]}/>
+    <mesh position={[0,.12,0]}>
+      <boxGeometry args={[1.16,.10,1.04]}/>
       <meshStandardMaterial color="#d1a36c" roughness={.65}/>
     </mesh>
-    <mesh position={[0,-.36,0]}>
-      <cylinderGeometry args={[.16,.24,.34,7]}/>
+    <mesh position={[0,.32,0]}>
+      <cylinderGeometry args={[.16,.24,.28,7]}/>
       <meshStandardMaterial color="#4f514d" metalness={.55} roughness={.42}/>
     </mesh>
-    <mesh position={[0,-.10,0]}>
-      <coneGeometry args={[.18,.48,6]}/>
+    <mesh position={[0,.58,0]}>
+      <coneGeometry args={[.18,.42,6]}/>
       <meshStandardMaterial color="#ffd17c" emissive="#ff9b35" emissiveIntensity={3.8} transparent opacity={.94}/>
     </mesh>
-    <pointLight position={[0,-.04,0]} color="#ffb45d" intensity={3.6} distance={5}/>
+    <pointLight position={[0,.55,0]} color="#ffb45d" intensity={3.6} distance={5}/>
   </group>;
 };
 
 const Balloon:React.FC<{globalFrame:number;shot:Shot}> = ({globalFrame,shot}) => {
   const seconds=globalFrame/30;
-  const rise=shot==="valley" ? .55+seconds*.43 : 1.15+seconds*.31;
+  const rise=shot==="valley" ? -.50+seconds*.43 : 1.15+seconds*.31;
   const drift=seconds*.52;
   const sway=Math.sin(globalFrame/48)*.13;
   const rotation=Math.sin(globalFrame/110)*.04;
@@ -205,13 +205,14 @@ const AnimatedCamera:React.FC<{shot:Shot;frame:number;globalFrame:number}> = ({s
     camera.lookAt(subjectX*.35,3.55+.45*p,-3);
   }else if(shot==="tracking"){
     const angle=THREE.MathUtils.degToRad(-20+40*p);
-    const offsetX=-6.8*Math.sin(angle);
-    const offsetZ=6.8*Math.cos(angle);
-    camera.position.set(subjectX+offsetX,subjectY+.35,subjectZ+offsetZ);
-    camera.lookAt(subjectX,subjectY,subjectZ);
+    const offsetX=-8.0*Math.sin(angle);
+    const offsetZ=8.0*Math.cos(angle);
+    const rigCenterY=subjectY-1.1;
+    camera.position.set(subjectX+offsetX,rigCenterY+.35,subjectZ+offsetZ);
+    camera.lookAt(subjectX,rigCenterY,subjectZ);
   }else{
     camera.position.set(subjectX-2+8*p,subjectY+3.8+8*p,subjectZ+14+10*p);
-    camera.lookAt(subjectX+.8*p,subjectY+1.6*p,-5);
+    camera.lookAt(subjectX+.8*p,subjectY-1.1+1.2*p,-5);
   }
   return null;
 };
