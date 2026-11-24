@@ -71,10 +71,10 @@ const Envelope:React.FC=()=>{
     makeEnvelopeSegment(2.63,Math.PI-2.63)
   ],[]);
   return <group position={[0,3.15,0]} scale={[1.22,1.72,1.08]}>
-    <mesh geometry={bands[0]}><meshStandardMaterial color="#d78b58" roughness={.72} flatShading/></mesh>
-    <mesh geometry={bands[1]} scale={[1.003,1.003,1.003]}><meshStandardMaterial color="#e9bc81" roughness={.78} flatShading/></mesh>
-    <mesh geometry={bands[2]} scale={[1.004,1.004,1.004]}><meshStandardMaterial color="#b96c51" roughness={.78} flatShading/></mesh>
-    <mesh geometry={bands[3]} scale={[1.005,1.005,1.005]}><meshStandardMaterial color="#9b5b48" roughness={.8} flatShading/></mesh>
+    <mesh geometry={bands[0]!}><meshStandardMaterial color="#d78b58" roughness={.72} flatShading/></mesh>
+    <mesh geometry={bands[1]!} scale={[1.003,1.003,1.003]}><meshStandardMaterial color="#e9bc81" roughness={.78} flatShading/></mesh>
+    <mesh geometry={bands[2]!} scale={[1.004,1.004,1.004]}><meshStandardMaterial color="#b96c51" roughness={.78} flatShading/></mesh>
+    <mesh geometry={bands[3]!} scale={[1.005,1.005,1.005]}><meshStandardMaterial color="#9b5b48" roughness={.8} flatShading/></mesh>
     <mesh position={[0,-1.61,0]}>
       <cylinderGeometry args={[.46,.54,.16,12]}/>
       <meshStandardMaterial color="#6b4539" roughness={.8}/>
