@@ -224,7 +224,7 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
   const fogColor=shot==="crane"?"#a8bac6":"#9cabb7";
   return <ThreeScene
     background="#8296ac"
-    fog={shot==="crane"?undefined:fogColor}
+    {...(shot==="crane"?{}:{fog:fogColor})}
     cameraFrom={[0,3,15]}
     cameraTo={[0,3,15]}
     durationInFrames={shot==="crane"?180:210}
