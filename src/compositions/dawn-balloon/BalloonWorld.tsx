@@ -205,8 +205,8 @@ const AnimatedCamera:React.FC<{shot:Shot;frame:number;globalFrame:number}> = ({s
     camera.lookAt(subjectX*.35,3.55+.45*p,-3);
   }else if(shot==="tracking"){
     const angle=THREE.MathUtils.degToRad(-20+40*p);
-    const offsetX=-7.5*Math.sin(angle);
-    const offsetZ=7.5*Math.cos(angle);
+    const offsetX=-6.8*Math.sin(angle);
+    const offsetZ=6.8*Math.cos(angle);
     camera.position.set(subjectX+offsetX,subjectY+.35,subjectZ+offsetZ);
     camera.lookAt(subjectX,subjectY,subjectZ);
   }else{
@@ -223,7 +223,7 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
   const fogColor=shot==="crane"?"#a8bac6":"#9cabb7";
   return <ThreeScene
     background="#8296ac"
-    fog={fogColor}
+    fog={shot==="crane"?undefined:fogColor}
     cameraFrom={[0,3,15]}
     cameraTo={[0,3,15]}
     durationInFrames={shot==="crane"?180:210}
