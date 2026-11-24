@@ -54,8 +54,8 @@ const Balloon:React.FC<{globalFrame:number;shot:Shot}> = ({globalFrame,shot}) =>
   const drift=globalFrame/30*.52;
   const sway=Math.sin(globalFrame/48)*.16;
   const rotation=Math.sin(globalFrame/110)*.045;
-  const startY=shot==="valley" ? -1.45 : 1.15;
-  const climb=shot==="valley" ? globalFrame/30*.24 : rise*.31;
+  const startY=shot==="valley" ? -2.85 : 1.15;
+  const climb=shot==="valley" ? globalFrame/30*.18 : rise*.31;
   return <group position={[drift,startY+climb+sway,-1.2]} rotation={[0,0,rotation]}>
     <group position={[0,3.15,0]}>
       <mesh scale={[1.22,1.72,1.08]}>
@@ -82,18 +82,18 @@ const Balloon:React.FC<{globalFrame:number;shot:Shot}> = ({globalFrame,shot}) =>
     <group>
       {[[-.43,-1.55,-.43],[.43,-1.55,-.43],[-.43,-1.55,.43],[.43,-1.55,.43]].map((start,i)=>{
         const end:Vec3=[i%2===0?-.52:.52,-3.36,i<2?-.44:.44];
-        const mid:Vec3=[(start[0]+end[0])/2,-2.49,(start[2]+end[2])/2];
+        const mid:Vec3=[(start[0]+end[0])/2,-2.76,(start[2]+end[2])/2];
         const vector=new THREE.Vector3(end[0]-start[0],end[1]-start[1],end[2]-start[2]);
         return <mesh key={i} position={mid} quaternion={new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),vector.clone().normalize())}>
           <cylinderGeometry args={[.043,.043,vector.length(),6]}/>
           <meshStandardMaterial color="#463d39" roughness={.8}/>
         </mesh>;
       })}
-      <mesh position={[0,-3.48,0]}>
+      <mesh position={[0,-3.48,.05]}>
         <boxGeometry args={[1.12,.88,1.04]}/>
         <meshStandardMaterial color="#805337" roughness={.9} flatShading/>
       </mesh>
-      <mesh position={[0,-3.02,0]}>
+      <mesh position={[0,-3.02,.05]}>
         <boxGeometry args={[1.20,.14,1.12]}/>
         <meshStandardMaterial color="#d1a36c" roughness={.65}/>
       </mesh>
