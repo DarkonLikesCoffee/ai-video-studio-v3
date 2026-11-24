@@ -49,73 +49,75 @@ const MountainRange:React.FC<{frame:number;layer:number}> = ({frame,layer}) => {
   </group>)}</group>;
 };
 
-const Balloon:React.FC<{globalFrame:number}> = ({globalFrame}) => {
+const Balloon:React.FC<{globalFrame:number;shot:Shot}> = ({globalFrame,shot}) => {
   const rise=globalFrame/30;
   const drift=globalFrame/30*.52;
   const sway=Math.sin(globalFrame/48)*.16;
   const rotation=Math.sin(globalFrame/110)*.045;
-  return <group position={[drift,1.15+rise*.31+sway,-1.2]} rotation={[0,0,rotation]}>
+  const startY=shot==="valley" ? -1.45 : 1.15;
+  const climb=shot==="valley" ? globalFrame/30*.24 : rise*.31;
+  return <group position={[drift,startY+climb+sway,-1.2]} rotation={[0,0,rotation]}>
     <group position={[0,3.15,0]}>
       <mesh scale={[1.22,1.72,1.08]}>
         <sphereGeometry args={[1,14,12]} />
         <meshStandardMaterial color="#d78b58" roughness={.72} flatShading />
       </mesh>
-      <mesh position={[0,.02,.005]} scale={[1.235,1.18,1.095]}>
+      <mesh position={[0,.02,.005]} scale={[1.236,1.20,1.096]}>
         <sphereGeometry args={[1,14,10]} />
         <meshStandardMaterial color="#e9bc81" roughness={.78} flatShading />
       </mesh>
-      <mesh position={[0,-.50,0]} scale={[1.245,.58,1.10]}>
+      <mesh position={[0,-.52,0]} scale={[1.246,.58,1.10]}>
         <sphereGeometry args={[1,14,8]} />
         <meshStandardMaterial color="#b96c51" roughness={.78} flatShading />
       </mesh>
       <mesh position={[0,-1.58,0]} rotation={[Math.PI,0,0]}>
-        <cylinderGeometry args={[.48,.60,.12,12]} />
+        <cylinderGeometry args={[.58,.65,.14,12]} />
         <meshStandardMaterial color="#6b4539" roughness={.8} />
       </mesh>
       <mesh position={[0,-1.68,0]}>
-        <torusGeometry args={[.55,.065,5,14]} />
+        <torusGeometry args={[.62,.075,5,14]} />
         <meshStandardMaterial color="#d9aa75" metalness={.25} roughness={.45}/>
       </mesh>
     </group>
     <group>
       {[[-.43,-1.55,-.43],[.43,-1.55,-.43],[-.43,-1.55,.43],[.43,-1.55,.43]].map((start,i)=>{
-        const end:Vec3=[i%2===0?-.36:.36,-3.12,i<2?-.31:.31];
-        const mid:Vec3=[(start[0]+end[0])/2,-2.30,(start[2]+end[2])/2];
+        const end:Vec3=[i%2===0?-.52:.52,-3.36,i<2?-.44:.44];
+        const mid:Vec3=[(start[0]+end[0])/2,-2.49,(start[2]+end[2])/2];
         const vector=new THREE.Vector3(end[0]-start[0],end[1]-start[1],end[2]-start[2]);
         return <mesh key={i} position={mid} quaternion={new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),vector.clone().normalize())}>
-          <cylinderGeometry args={[.025,.025,vector.length(),5]}/>
+          <cylinderGeometry args={[.043,.043,vector.length(),6]}/>
           <meshStandardMaterial color="#463d39" roughness={.8}/>
         </mesh>;
       })}
-      <mesh position={[0,-3.22,0]}>
-        <boxGeometry args={[.88,.72,.82]}/>
+      <mesh position={[0,-3.48,0]}>
+        <boxGeometry args={[1.12,.88,1.04]}/>
         <meshStandardMaterial color="#805337" roughness={.9} flatShading/>
       </mesh>
-      <mesh position={[0,-2.84,0]}>
-        <boxGeometry args={[.98,.12,.92]}/>
+      <mesh position={[0,-3.02,0]}>
+        <boxGeometry args={[1.20,.14,1.12]}/>
         <meshStandardMaterial color="#d1a36c" roughness={.65}/>
       </mesh>
-      <mesh position={[0,-2.70,0]}>
-        <cylinderGeometry args={[.13,.20,.30,7]}/>
+      <mesh position={[0,-2.80,0]}>
+        <cylinderGeometry args={[.16,.24,.34,7]}/>
         <meshStandardMaterial color="#4f514d" metalness={.55} roughness={.42}/>
       </mesh>
-      <mesh position={[0,-2.47,0]}>
-        <coneGeometry args={[.14,.40,6]}/>
+      <mesh position={[0,-2.53,0]}>
+        <coneGeometry args={[.18,.48,6]}/>
         <meshStandardMaterial color="#ffd17c" emissive="#ff9b35" emissiveIntensity={3.8} transparent opacity={.94}/>
       </mesh>
-      <pointLight position={[0,-2.30,0]} color="#ffb45d" intensity={3.6} distance={5}/>
+      <pointLight position={[0,-2.26,0]} color="#ffb45d" intensity={3.6} distance={5}/>
     </group>
   </group>;
 };
 
-const CloudBank:React.FC<{frame:number}> = ({frame}) => <group>
+const CloudBank:React.FC<{frame:number;shot:Shot}> = ({frame,shot}) => <group>
   {Array.from({length:13},(_,i)=>{
     const x=((i*7.1-frame*.045+55)%110)-55;
     const y=5.0+Math.sin(i*1.4)*1.1;
     const z=-5-(i%4)*2.2;
     return <group key={i} position={[x,y,z]}>
-      <mesh scale={[3.1,1.0,1.25]}><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color="#c6d0d5" transparent opacity={.33} roughness={1} flatShading/></mesh>
-      <mesh position={[1.6,.18,.15]} scale={[2.0,.72,1.1]}><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color="#e5d5c6" transparent opacity={.23} roughness={1} flatShading/></mesh>
+      <mesh scale={[3.1,1.0,1.25]}><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color="#c6d0d5" transparent opacity={shot==="crane"?.10:.24} roughness={1} flatShading/></mesh>
+      <mesh position={[1.6,.18,.15]} scale={[2.0,.72,1.1]}><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color="#e5d5c6" transparent opacity={shot==="crane"?.07:.17} roughness={1} flatShading/></mesh>
     </group>;
   })}
 </group>;
@@ -156,12 +158,12 @@ const AnimatedCamera:React.FC<{shot:Shot;frame:number}> = ({shot,frame}) => {
   const p=shot==="crane" ? smooth(0,179,frame) : shot==="valley" ? smooth(0,209,frame) : frame/209;
   const angle=THREE.MathUtils.degToRad(-20+40*p);
   const position:Vec3=shot==="valley"
-    ? [2.8*p,2.6+6.2*p,15-4*p]
+    ? [1.1*p,1.8+3.4*p,14.5-3.5*p]
     : shot==="tracking"
-      ? [-8+9*p,5.8+1.4*p,12*Math.sin(angle)+8]
+      ? [-6+7*p,5.9+1.2*p,12*Math.sin(angle)+9]
       : [5+7*p,11+8*p,14+10*p];
   const target:Vec3=shot==="valley"
-    ? [1.8*p,5+7*p,-3]
+    ? [1.2*p,2.5+5.6*p,-3]
     : shot==="tracking"
       ? [.7+frame/30*.52,7.2+frame/30*.31,-1.2]
       : [2+frame/30*.52,8.8+frame/30*.31,-5];
@@ -176,7 +178,7 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
   const warm=shot==="crane" ? smooth(0,179,frame) : shot==="tracking" ? .65 : smooth(0,180,frame);
   return <ThreeCanvas width={1920} height={1080} camera={{position:[0,3,15],fov:38}}>
     <color attach="background" args={["#8296ac"]}/>
-    <fog attach="fog" args={["#9cabb7",8,30]}/>
+    <fog attach="fog" args={[shot==="crane"?"#a8bac6":"#9cabb7",shot==="crane"?18:8,shot==="crane"?55:30]}/>
     <AnimatedCamera shot={shot} frame={frame}/>
     <ambientLight intensity={.72} color="#a8c2dd"/>
     <directionalLight position={[10,12,-5]} intensity={2.1+warm*.8} color="#ffcf9d"/>
@@ -192,8 +194,8 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
       <MountainRange frame={frame} layer={1}/>
       <MountainRange frame={frame} layer={2}/>
     </group>
-    <CloudBank frame={frame}/>
-    <Balloon globalFrame={globalFrame}/>
+    <CloudBank frame={frame} shot={shot}/>
+    <Balloon globalFrame={globalFrame} shot={shot}/>
     <Atmosphere frame={frame}/>
   </ThreeCanvas>;
 };
