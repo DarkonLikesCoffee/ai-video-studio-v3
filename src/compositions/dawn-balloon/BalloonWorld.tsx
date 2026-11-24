@@ -14,7 +14,7 @@ const smooth = (a:number,b:number,x:number) => {
 
 const Mountain:React.FC<{position:Vec3;scale:Vec3;seed:number;far?:boolean}> = ({position,scale,seed,far=false}) => {
   const geometry=useMemo(()=>{
-    const g=new THREE.ConeGeometry(1,2,7,4);
+    const g=new THREE.ConeGeometry(1,2,7,1);
     const p=g.attributes.position as THREE.BufferAttribute;
     for(let i=0;i<p.count;i++){
       const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
