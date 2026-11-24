@@ -1,1 +1,1 @@
-export {DawnBalloon} from "./index";
+export {DawnBalloon} from "./DawnBalloon";
