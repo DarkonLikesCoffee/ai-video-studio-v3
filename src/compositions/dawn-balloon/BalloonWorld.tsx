@@ -54,8 +54,8 @@ const Balloon:React.FC<{globalFrame:number;shot:Shot}> = ({globalFrame,shot}) =>
   const drift=globalFrame/30*.52;
   const sway=Math.sin(globalFrame/48)*.16;
   const rotation=Math.sin(globalFrame/110)*.045;
-  const startY=shot==="valley" ? -2.85 : 1.15;
-  const climb=shot==="valley" ? globalFrame/30*.18 : rise*.31;
+  const startY=shot==="valley" ? -1.65 : 1.15;
+  const climb=shot==="valley" ? globalFrame/30*.10 : rise*.31;
   return <group position={[drift,startY+climb+sway,-1.2]} rotation={[0,0,rotation]}>
     <group position={[0,3.15,0]}>
       <mesh scale={[1.22,1.72,1.08]}>
@@ -158,12 +158,12 @@ const AnimatedCamera:React.FC<{shot:Shot;frame:number}> = ({shot,frame}) => {
   const p=shot==="crane" ? smooth(0,179,frame) : shot==="valley" ? smooth(0,209,frame) : frame/209;
   const angle=THREE.MathUtils.degToRad(-20+40*p);
   const position:Vec3=shot==="valley"
-    ? [1.1*p,1.8+3.4*p,14.5-3.5*p]
+    ? [.8*p,2.3+4.4*p,17.5-2.0*p]
     : shot==="tracking"
       ? [-6+7*p,5.9+1.2*p,12*Math.sin(angle)+9]
       : [5+7*p,11+8*p,14+10*p];
   const target:Vec3=shot==="valley"
-    ? [1.2*p,2.5+5.6*p,-3]
+    ? [.9*p,3.3+4.5*p,-3]
     : shot==="tracking"
       ? [.7+frame/30*.52,7.2+frame/30*.31,-1.2]
       : [2+frame/30*.52,8.8+frame/30*.31,-5];
