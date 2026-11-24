@@ -2,7 +2,7 @@ import React, {useMemo} from "react";
 import {useCurrentFrame} from "remotion";
 import {useThree} from "@react-three/fiber";
 import * as THREE from "three";
-import {ThreeScene} from "../../shared/three-scene";
+import {ThreeCanvas} from "@remotion/three";
 
 type Vec3 = [number, number, number];
 type Shot = "valley" | "tracking" | "crane";
@@ -153,22 +153,24 @@ const Sun:React.FC=()=> <group position={[12,13,-35]}>
 
 const AnimatedCamera:React.FC<{shot:Shot;frame:number}> = ({shot,frame}) => {
   const t=frame;
-  const {camera}=useThree();
+  // Compute deterministic pose vectors; CameraRig below applies them once per frame.
   if(shot==="valley"){
     const p=smooth(0,209,t);
-    camera.position.set(0+2.8*p,2.6+6.2*p,15-4*p);
-    camera.lookAt(0+1.8*p,5.0+7.0*p,-3);
-  } else if(shot==="tracking"){
+    return <CameraRig position={[2.8*p,2.6+6.2*p,15-4*p]} target={[1.8*p,5+7*p,-3]}/>;
+  }
+  if(shot==="tracking"){
     const p=t/209;
     const angle=THREE.MathUtils.degToRad(-20+40*p);
-    camera.position.set(-8+9*p,5.8+1.4*p,12*Math.cos(angle));
-    camera.position.z=12*Math.sin(angle)+8;
-    camera.lookAt(.7+t/30*.52,7.2+t/30*.31,-1.2);
-  } else {
-    const p=smooth(0,179,t);
-    camera.position.set(5+7*p,11+8*p,14+10*p);
-    camera.lookAt(2+t/30*.52,8.8+t/30*.31,-5);
+    return <CameraRig position={[-8+9*p,5.8+1.4*p,12*Math.sin(angle)+8]} target={[.7+t/30*.52,7.2+t/30*.31,-1.2]}/>;
   }
+  const p=smooth(0,179,t);
+  return <CameraRig position={[5+7*p,11+8*p,14+10*p]} target={[2+t/30*.52,8.8+t/30*.31,-5]}/>;
+};
+
+const CameraRig:React.FC<{position:Vec3;target:Vec3}> = ({position,target}) => {
+  const {camera}=useThree();
+  camera.position.set(...position);
+  camera.lookAt(...target);
   return null;
 };
 
@@ -176,7 +178,9 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
   const frame=useCurrentFrame();
   const globalFrame=globalStart+frame;
   const warm=shot==="crane" ? smooth(0,179,frame) : shot==="tracking" ? .65 : smooth(0,180,frame);
-  return <ThreeScene background="#8296ac" fog="#9cabb7" cameraFrom={[0,3,15]} cameraTo={[0,3,15]} durationInFrames={shot==="crane"?180:210}>
+  return <ThreeCanvas width={1920} height={1080} camera={{position:[0,3,15],fov:38}}>
+    <color attach="background" args={["#8296ac"]}/>
+    <fog attach="fog" args={["#9cabb7",8,30]}/>
     <AnimatedCamera shot={shot} frame={frame}/>
     <ambientLight intensity={.72} color="#a8c2dd"/>
     <directionalLight position={[10,12,-5]} intensity={2.1+warm*.8} color="#ffcf9d"/>
@@ -195,5 +199,5 @@ export const BalloonWorld:React.FC<{shot:Shot;globalStart:number}> = ({shot,glob
     <CloudBank frame={frame}/>
     <Balloon globalFrame={globalFrame}/>
     <Atmosphere frame={frame}/>
-  </ThreeScene>;
+  </ThreeCanvas>;
 };
