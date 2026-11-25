@@ -1,0 +1,97 @@
+name: Reference attachment download test
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  test-download:
+    if: startsWith(github.event.issue.title, 'Reference upload test:')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify issue attachments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || "";
+            const urls = [...new Set(
+              [...body.matchAll(/https:\/\/github\.com\/user-attachments\/(?:assets|files)\/[^\s)"'<>]+/g)]
+                .map(match => match[0].replace(/[.,;!?]+$/, ""))
+            )];
+
+            const results = [];
+            for (const url of urls) {
+              try {
+                const parsed = new URL(url);
+                if (parsed.hostname !== "github.com" ||
+                    !parsed.pathname.startsWith("/user-attachments/")) {
+                  throw new Error("Attachment URL host/path is not allowed");
+                }
+
+                const response = await fetch(url, {
+                  redirect: "follow",
+                  signal: AbortSignal.timeout(30000)
+                });
+                if (!response.ok) {
+                  throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+
+                const declaredLength = Number(response.headers.get("content-length") || 0);
+                const maxBytes = 25 * 1024 * 1024;
+                if (declaredLength > maxBytes) {
+                  throw new Error(`File exceeds the 25 MiB test limit (${declaredLength} bytes)`);
+                }
+
+                const hash = require("crypto").createHash("sha256");
+                let bytes = 0;
+                const reader = response.body.getReader();
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  bytes += value.byteLength;
+                  if (bytes > maxBytes) {
+                    await reader.cancel();
+                    throw new Error("File exceeded the 25 MiB test limit while downloading");
+                  }
+                  hash.update(value);
+                }
+
+                results.push({
+                  url,
+                  ok: true,
+                  bytes,
+                  sha256: hash.digest("hex"),
+                  contentType: response.headers.get("content-type") || "unknown"
+                });
+              } catch (error) {
+                results.push({ url, ok: false, error: String(error.message || error) });
+              }
+            }
+
+            const lines = results.length
+              ? results.map((r, i) => r.ok
+                  ? `${i + 1}. **Downloaded** — ${r.bytes.toLocaleString()} bytes; SHA-256: \`${r.sha256}\`; type: ${r.contentType}`
+                  : `${i + 1}. **Failed** — ${r.error}`).join("\n")
+              : "No supported attachment URLs were found in the issue description.";
+
+            const passed = results.length > 0 && results.every(r => r.ok);
+            const summary = [
+              "## Reference attachment download test",
+              "",
+              `Result: **${passed ? "PASS" : "NEEDS INVESTIGATION"}**`,
+              "",
+              lines,
+              "",
+              "This test downloads attachments for verification only. It does not commit or retain the files."
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: summary
+            });
