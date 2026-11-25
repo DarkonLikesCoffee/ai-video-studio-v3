@@ -3,7 +3,7 @@ from pathlib import Path
 from PIL import Image,ImageOps
 
 def main():
- incoming,manifest,out=map(Path,sys.argv[1:4]); body=Path(sys.argv[4]).read_text()
+ incoming,manifest,out=map(Path,sys.argv[1:4]); event=json.loads(Path(sys.argv[4]).read_text()); body=event["issue"].get("body") or ""
  slug=os.environ["REFERENCE_SLUG"]; issue=os.environ["ISSUE_URL"]
  items=json.loads(manifest.read_text())["attachments"]; out.mkdir(parents=True,exist_ok=True)
  fields={"TAKE":"","IGNORE":"","MOTION":"","SOURCE":""}; desc={}
