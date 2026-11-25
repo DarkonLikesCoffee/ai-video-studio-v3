@@ -1,0 +1,6 @@
+name: Upload reference set
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
