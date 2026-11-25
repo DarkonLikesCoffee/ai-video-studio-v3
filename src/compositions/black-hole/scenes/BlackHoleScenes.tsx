@@ -7,70 +7,154 @@ import {Vignette} from "../../../shared/overlays";
 
 const TAU=Math.PI*2;
 type Shot="wide"|"hero"|"oblique";
+
 const CameraMove:React.FC<{shot:Shot}> = ({shot})=>{
  const frame=useCurrentFrame(),{camera}=useThree(),{durationInFrames}=useVideoConfig();
  useFrame(()=>{
   const t=frame/Math.max(1,durationInFrames-1);
   if(shot==="wide") camera.position.set(.2+Math.sin(t*1.5)*.22,2.2+Math.sin(t*2)*.12,15.5-3.2*t);
   else if(shot==="hero") camera.position.set(.15+Math.sin(t*1.3)*.34,1.2+Math.sin(t*1.6)*.15,10.5-1.1*t);
-  else camera.position.set(3.2+Math.sin(t*1.2)*.6,4.1+Math.sin(t*1.5)*.25,10.4-1.4*t);
+  else camera.position.set(3.5-t*1.2,3.8-t*.8,11-t*1.7);
   camera.lookAt(0,0,0);
  });
  return null;
 };
-const OrbitParticles:React.FC<{count:number;radius:number;color:string;size:number;seed:number;depth:number;drift:number}> = ({count,radius,color,size,seed,depth,drift})=>{
- const ref=useRef<THREE.Points>(null);
- const positions=useMemo(()=>{
-  const a=new Float32Array(count*3);let n=seed;
-  const rand=()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};
-  for(let i=0;i<count;i++){const angle=rand()*TAU,r=radius*(.35+rand()*.85);a[i*3]=Math.cos(angle)*r;a[i*3+1]=(rand()-.5)*depth;a[i*3+2]=Math.sin(angle)*r;}
+
+const seeded=(seed:number)=>{let n=seed;return ()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};};
+
+const StarLayers:React.FC=()=>{
+ const far=useRef<THREE.Points>(null),mid=useRef<THREE.Points>(null),near=useRef<THREE.Points>(null);
+ const make=(count:number,radius:number,depth:number,seed:number)=>{
+  const rand=seeded(seed),a=new Float32Array(count*3);
+  for(let i=0;i<count;i++){const theta=rand()*TAU,r=radius*(.25+rand());a[i*3]=Math.cos(theta)*r;a[i*3+1]=(rand()-.5)*depth;a[i*3+2]=Math.sin(theta)*r;}
   return a;
- },[count,radius,seed,depth]);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*drift;});
- return <points ref={ref}><bufferGeometry><bufferAttribute attach="attributes-position" args={[positions,3]}/></bufferGeometry><pointsMaterial color={color} size={size} transparent opacity={.66} sizeAttenuation depthWrite={false}/></points>;
+ };
+ const farPos=useMemo(()=>make(900,28,28,11),[]);
+ const midPos=useMemo(()=>make(310,18,18,43),[]);
+ const nearPos=useMemo(()=>make(90,12,12,101),[]);
+ useFrame(({clock})=>{
+  const t=clock.getElapsedTime();
+  if(far.current)far.current.rotation.y=t*.0015;
+  if(mid.current)mid.current.rotation.y=-t*.003;
+  if(near.current)near.current.rotation.y=t*.006;
+ });
+ const layer=(ref:React.RefObject<THREE.Points|null>,positions:Float32Array,color:string,size:number)=>
+  <points ref={ref}><bufferGeometry><bufferAttribute attach="attributes-position" args={[positions,3]}/></bufferGeometry><pointsMaterial color={color} size={size} transparent opacity={.72} sizeAttenuation depthWrite={false}/></points>;
+ return <group>{layer(far,farPos,"#667f9f",.024)}{layer(mid,midPos,"#aabfd5",.034)}{layer(near,nearPos,"#d9f0ff",.047)}</group>;
 };
-const EventHorizon:React.FC=()=> <group>
- <mesh><sphereGeometry args={[2.02,48,32]}/><meshBasicMaterial color="#000000"/></mesh>
- <mesh rotation={[Math.PI/2,0,0]}><torusGeometry args={[2.08,.045,8,128]}/><meshBasicMaterial color="#8ceaff" transparent opacity={.35}/></mesh>
-</group>;
-const LensRings:React.FC<{warm?:boolean}> = ({warm=false})=> <group rotation={[Math.PI/2,0,0]}>
- {[2.27,2.38,2.53].map((r,i)=><mesh key={r}><torusGeometry args={[r,.038-i*.006,8,160]}/><meshBasicMaterial color={warm?["#fff3d7","#ffd38a","#c77c42"][i]! : ["#ffffff","#bff7ff","#5ba9d8"][i]!} transparent opacity={[.95,.58,.24][i]!}/></mesh>)}
-</group>;
-const AccretionDisk:React.FC<{tilt:number;warm?:boolean;wide?:boolean}> = ({tilt,warm=false,wide=false})=>{
+
+const EventHorizon:React.FC=()=> <mesh>
+ <sphereGeometry args={[2,64,48]}/>
+ <meshBasicMaterial color="#000000"/>
+</mesh>;
+
+const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=false,wide=false,tilt})=>{
  const ref=useRef<THREE.Group>(null);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.055;});
- const bands=useMemo(()=>Array.from({length:9},(_,i)=>({major:2.38+i*(wide?.36:.31),minor:.14+(i%4)*.035,opacity:.72-i*.055})),[wide]);
+ useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.035;});
+ const inner=2.12,outer=wide?5.7:5.15;
+ const geometry=useMemo(()=>{
+  const segments=192,radial=34,vertices:number[]=[],colors:number[]=[],indices:number[]=[];
+  const innerC=new THREE.Color(warm?"#fff2d0":"#f3ffff");
+  const midC=new THREE.Color(warm?"#d77a36":"#397eaa");
+  const outerC=new THREE.Color(warm?"#2a1210":"#102b49");
+  for(let j=0;j<=radial;j++){
+   const u=j/radial,r=inner+u*(outer-inner);
+   for(let i=0;i<=segments;i++){
+    const a=i/segments*TAU;
+    const turbulence=(Math.sin(a*11+r*2.8)+Math.sin(a*23-r*4.2)*.55+Math.sin(a*39+r*7.1)*.22)/1.77;
+    const width=(.07+.18*(1-u))*(1+.34*turbulence);
+    const y=Math.sin(a*6+r*4)*.018*(1-u)+Math.sin(a*13-r*2)*.012;
+    vertices.push(Math.cos(a)*r,y,Math.sin(a)*r);
+    const c=innerC.clone().lerp(midC,THREE.MathUtils.smoothstep(u,.02,.55)).lerp(outerC,THREE.MathUtils.smoothstep(u,.58,1));
+    const noise=.9+.1*Math.sin(i*2.8+j*3.7);
+    colors.push(c.r*noise,c.g*noise,c.b*noise);
+   }
+  }
+  for(let j=0;j<radial;j++)for(let i=0;i<segments;i++){const a=j*(segments+1)+i,b=a+segments+1;indices.push(a,b,a+1,b,b+1,a+1);}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+  g.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
+  g.setIndex(indices);g.computeVertexNormals();return g;
+ },[warm,wide]);
  return <group ref={ref} rotation={[tilt,0,0]}>
-  {bands.map((b,i)=><mesh key={i} rotation={[Math.PI/2,0,0]}><torusGeometry args={[b.major,b.minor,6,160]}/><meshBasicMaterial color={warm?["#fff4d7","#ffc16b","#db783c"][i%3]! : ["#eafcff","#86dfff","#2e79b0"][i%3]!} transparent opacity={b.opacity} side={THREE.DoubleSide}/></mesh>)}
-  {Array.from({length:38},(_,i)=>{const a=i*TAU/38,r=2.9+(i%9)*.25;return <mesh key={i} position={[Math.cos(a)*r,.015*Math.sin(i*4),Math.sin(a)*r]} rotation={[0,-a,0]}><boxGeometry args={[.22+(i%4)*.1,.025,.045+(i%3)*.02]}/><meshBasicMaterial color={warm?"#ffcc8d":"#9be7ff"} transparent opacity={.2+(i%4)*.1}/></mesh>;})}
+  <mesh geometry={geometry} rotation={[Math.PI/2,0,0]}>
+   <meshBasicMaterial vertexColors side={THREE.DoubleSide} transparent opacity={.92}/>
+  </mesh>
+  <mesh rotation={[Math.PI/2,0,0]}>
+   <torusGeometry args={[2.26,.075,10,192]}/>
+   <meshBasicMaterial color={warm?"#fff0cf":"#eaffff"} transparent opacity={.82}/>
+  </mesh>
  </group>;
 };
-const PlasmaFilaments:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=>{
+
+const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm=false,tilt,count=120})=>{
  const ref=useRef<THREE.Group>(null);
- const lines=useMemo(()=>Array.from({length:42},(_,i)=>{
-  const angle=i*TAU/42,points=[];const r0=2.55+(i%8)*.18,r1=4.8+(i%6)*.16;
-  for(let j=0;j<22;j++){const t=j/21,r=THREE.MathUtils.lerp(r0,r1,t),w=Math.sin(t*9+i*1.7)*.075;points.push(new THREE.Vector3(Math.cos(angle+w)*r,Math.sin(angle+w)*r*.045,Math.sin(angle+w)*r));}
-  return new THREE.CatmullRomCurve3(points);
- }),[]);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.07;});
- return <group ref={ref} rotation={[tilt,0,0]}>{lines.map((curve,i)=><mesh key={i}><tubeGeometry args={[curve,48,.012+(i%3)*.008,4,false]}/><meshBasicMaterial color={warm?(i%3===0?"#fff0ce":"#d98950"):(i%3===0?"#efffff":"#55b5e4")} transparent opacity={.18+(i%4)*.07}/></mesh>)}</group>;
+ const curves=useMemo(()=>{
+  const rand=seeded(warm?202:77);
+  return Array.from({length:count},(_,i)=>{
+   const a=rand()*TAU,r0=2.35+rand()*.6,r1=3.5+rand()*2.2,skew=(rand()-.5)*.24;
+   const pts:THREE.Vector3[]=[];
+   for(let j=0;j<28;j++){
+    const t=j/27,r=THREE.MathUtils.lerp(r0,r1,t),angle=a+skew*t+Math.sin(t*12+i)*.035;
+    const height=Math.sin(t*7+i*.73)*(.04+rand()*.004);
+    pts.push(new THREE.Vector3(Math.cos(angle)*r,height,Math.sin(angle)*r));
+   }
+   return new THREE.CatmullRomCurve3(pts);
+  });
+ },[count,warm]);
+ useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.052;});
+ return <group ref={ref} rotation={[tilt,0,0]}>
+  {curves.map((curve,i)=><mesh key={i}>
+   <tubeGeometry args={[curve,36,.006+(i%5)*.003,4,false]}/>
+   <meshBasicMaterial color={warm?(i%5===0?"#fff6d8":i%2?"#e68c4e":"#a74b24"):(i%5===0?"#ffffff":i%2?"#80d9ff":"#286eaa")} transparent opacity={.14+(i%6)*.035}/>
+  </mesh>)}
+ </group>;
 };
-const StarLayers:React.FC=()=> <group>
- <OrbitParticles count={950} radius={18} depth={23} color="#8ea8c7" size={.027} seed={11} drift={.0015}/>
- <OrbitParticles count={280} radius={11} depth={13} color="#d5e7f4" size={.038} seed={43} drift={-.0024}/>
- <OrbitParticles count={110} radius={7} depth={9} color="#75a9d8" size={.052} seed={101} drift={.004}/>
-</group>;
+
+const DustCloud:React.FC<{warm?:boolean}> = ({warm=false})=>{
+ const ref=useRef<THREE.Points>(null);
+ const positions=useMemo(()=>{
+  const rand=seeded(warm?501:301),n=2200,a=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+   const angle=rand()*TAU,r=2.15+rand()*3.15;
+   a[i*3]=Math.cos(angle)*r;
+   a[i*3+1]=(rand()-.5)*(.08+rand()*.24);
+   a[i*3+2]=Math.sin(angle)*r;
+  }
+  return a;
+ },[warm]);
+ useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.03;});
+ return <points ref={ref}><bufferGeometry><bufferAttribute attach="attributes-position" args={[positions,3]}/></bufferGeometry><pointsMaterial color={warm?"#f6b06d":"#70c7ee"} size={.035} transparent opacity={.28} sizeAttenuation depthWrite={false}/></points>;
+};
+
+const LensedRearArc:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=>
+ <group rotation={[tilt,0,0]} position={[0,.62,0]}>
+  <mesh rotation={[Math.PI/2,0,0]}>
+   <torusGeometry args={[2.38,.105,12,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.96}/>
+  </mesh>
+  <mesh rotation={[Math.PI/2,0,0]}>
+   <torusGeometry args={[2.42,.23,10,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#ffbd6d":"#83dcff"} transparent opacity={.18}/>
+  </mesh>
+ </group>;
+
 const BlackHoleSet:React.FC<{shot:Shot}> = ({shot})=>{
- const warm=shot==="oblique",tilt=shot==="oblique"?.58:shot==="wide"?-.12:0;
+ const warm=shot==="oblique",wide=shot==="wide",tilt=warm?-.72:wide?-.12:0;
  return <>
-  <color attach="background" args={[shot==="wide"?"#03050a":warm?"#05050b":"#02050a"]}/>
-  <fog attach="fog" args={["#03060a",18,42]}/>
-  <ambientLight intensity={.09}/>
-  <pointLight position={[0,5,4]} intensity={52} distance={18} color={warm?"#ffc37d":"#b9f1ff"}/>
+  <color attach="background" args={[wide?"#02040a":warm?"#05050b":"#02050a"]}/>
+  <fog attach="fog" args={["#03050b",22,52]}/>
+  <ambientLight intensity={.06}/>
+  <pointLight position={[0,5,4]} intensity={58} distance={19} color={warm?"#ffc47d":"#c4f5ff"}/>
   <StarLayers/>
-  <group><EventHorizon/><LensRings warm={warm}/><AccretionDisk tilt={tilt} warm={warm} wide={shot==="wide"}/><PlasmaFilaments tilt={tilt} warm={warm}/></group>
+  <EventHorizon/>
+  <LensedRearArc warm={warm} tilt={tilt}/>
+  <DiskPlane warm={warm} wide={wide} tilt={tilt}/>
+  <DustCloud warm={warm}/>
+  <PlasmaStreaks warm={warm} tilt={tilt}/>
  </>;
 };
+
 const Overlay:React.FC<{code:string;caption:string}> = ({code,caption})=>{
  const f=useCurrentFrame(),alpha=interpolate(f,[0,15,130,170],[0,.7,.7,0],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
  return <AbsoluteFill style={{pointerEvents:"none",opacity:alpha}}>
@@ -80,8 +164,10 @@ const Overlay:React.FC<{code:string;caption:string}> = ({code,caption})=>{
 };
 const SceneCanvas:React.FC<{shot:Shot}> = ({shot})=>{
  const camera=shot==="wide"?[0,2.2,15.5] as [number,number,number]:shot==="hero"?[0,1.2,10.5] as [number,number,number]:[3.2,4.1,10.4] as [number,number,number];
- return <ThreeCanvas width={1920} height={1080} camera={{position:camera,fov:38,near:.1,far:100}}><CameraMove shot={shot}/><BlackHoleSet shot={shot}/></ThreeCanvas>;
+ return <ThreeCanvas width={1920} height={1080} camera={{position:camera,fov:38,near:.1,far:100}}>
+  <CameraMove shot={shot}/><BlackHoleSet shot={shot}/>
+ </ThreeCanvas>;
 };
-export const DeepField:React.FC=()=> <AbsoluteFill><SceneCanvas shot="wide"/><Vignette strength={.58}/><Overlay code="01 / DEEP FIELD • EVENT 7A" caption="A dark centre distorts the light around it"/></AbsoluteFill>;
+export const DeepField:React.FC=()=> <AbsoluteFill><SceneCanvas shot="wide"/><Vignette strength={.6}/><Overlay code="01 / DEEP FIELD • EVENT 7A" caption="A dark centre distorts the light around it"/></AbsoluteFill>;
 export const EdgeOnHero:React.FC=()=> <AbsoluteFill><SceneCanvas shot="hero"/><Vignette strength={.62}/><Overlay code="02 / LENSING PLANE" caption="The far side of the disk bends over the shadow"/></AbsoluteFill>;
 export const ObliqueSweep:React.FC=()=> <AbsoluteFill><SceneCanvas shot="oblique"/><Vignette strength={.66}/><Overlay code="03 / INNER FLOW" caption="Hot plasma sweeps across the foreground"/></AbsoluteFill>;
