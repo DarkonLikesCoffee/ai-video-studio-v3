@@ -10,7 +10,7 @@ For videos, use evenly spaced extracted frames rather than committing video file
 
 ## Uploading user reference sets
 
-Create an issue titled `Reference set: <name>` and attach JPG, PNG, WebP, MP4, MOV, or WebM files. The issue author must be the repository owner. The workflow downloads the attachments, prepares up to six frames (images resized to 1280 px wide max; videos sampled at evenly spaced timestamps), and opens a pull request adding `reference/<name>/`.
+Create an issue titled `Reference set: <name>` and attach JPG, PNG, WebP, MP4, MOV, or WebM files. The issue author must be the repository owner. The workflow downloads the attachments, prepares up to six frames (images resized to 1280 px wide max; videos sampled at evenly spaced timestamps), verifies the committed images by reading them back from `main`, and commits `reference/<name>/` directly to `main`. Original videos are never committed.
 
 Add optional notes as plain lines in the issue body:
 
@@ -19,7 +19,7 @@ Add optional notes as plain lines in the issue body:
 - `MOTION: ...` — camera movement and pacing.
 - `FRAME 1: ...` — factual description of the first prepared frame; repeat for each frame.
 
-The workflow does not generate AI image descriptions. If a FRAME description is omitted, notes.md explicitly marks it for inspection. Review the pull request and merge it to make the set available.
+The workflow does not generate AI image descriptions. If a FRAME description is omitted, notes.md explicitly marks it for inspection. The set is available as soon as the workflow succeeds; the issue receives a link to the commit.
 
 ## npm scripts
 
