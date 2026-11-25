@@ -1,4 +1,4 @@
-# AI Video Studio v2
+# AI Video Studio
 
 A Remotion-based video studio. Videos are authored as code-first compositions in `src/compositions/<slug>/`, with shared components in `src/shared/`.
 
@@ -16,4 +16,3 @@ Create each task branch from `main` using the name `review/<slug>`. Push ordinar
 `composition=<id> frames=<comma-separated-frames> round=<n> final=<true|false>`
 
 The metadata identifies the composition and frames to inspect, the review round, and whether to render a final MP4. Commits without `composition=` skip the review-render job. Once the work is approved, merge the review branch into `main` through a pull request.
-#
