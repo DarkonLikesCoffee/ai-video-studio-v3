@@ -45,7 +45,7 @@ const StarLayers:React.FC=()=>{
 
 const EventHorizon:React.FC=()=> <mesh>
  <sphereGeometry args={[2,64,48]}/>
- <meshBasicMaterial color="#000000"/>
+ <meshBasicMaterial color="#000000" side={THREE.FrontSide}/>
 </mesh>;
 
 const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=false,wide=false,tilt})=>{
@@ -81,8 +81,8 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
    <meshBasicMaterial vertexColors side={THREE.DoubleSide} transparent opacity={.92}/>
   </mesh>
   <mesh rotation={[Math.PI/2,0,0]}>
-   <torusGeometry args={[2.26,.075,10,192]}/>
-   <meshBasicMaterial color={warm?"#fff0cf":"#eaffff"} transparent opacity={.82}/>
+   <torusGeometry args={[2.22,.035,8,192]}/>
+   <meshBasicMaterial color={warm?"#fff0cf":"#eaffff"} transparent opacity={.58}/>
   </mesh>
  </group>;
 };
@@ -148,8 +148,8 @@ const BlackHoleSet:React.FC<{shot:Shot}> = ({shot})=>{
   <pointLight position={[0,5,4]} intensity={58} distance={19} color={warm?"#ffc47d":"#c4f5ff"}/>
   <StarLayers/>
   <EventHorizon/>
-  <LensedRearArc warm={warm} tilt={tilt}/>
   <DiskPlane warm={warm} wide={wide} tilt={tilt}/>
+  <LensedRearArc warm={warm} tilt={tilt}/>
   <DustCloud warm={warm}/>
   <PlasmaStreaks warm={warm} tilt={tilt}/>
  </>;
