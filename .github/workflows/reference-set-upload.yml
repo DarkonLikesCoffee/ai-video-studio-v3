@@ -5,7 +5,6 @@ on:
 permissions:
   contents: write
   issues: write
-  pull-requests: write
 jobs:
   upload:
     if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, 'Reference set:')
@@ -26,6 +25,12 @@ jobs:
             const slug=raw.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
             if(!slug || slug.length>48) throw new Error("Use: Reference set: spaceship-cinematic");
             core.setOutput("slug",slug);
+      - name: Check reference set does not already exist
+        env:
+          SLUG: ${{ steps.name.outputs.slug }}
+        run: |
+          TARGET="reference/$SLUG"
+          test ! -e "$TARGET" || { echo "::error::Reference set already exists: $TARGET"; exit 1; }
       - name: Install media tools
         run: |
           sudo apt-get update
@@ -56,44 +61,60 @@ jobs:
               attachments.push({filename,kind,content_type:type,bytes:b.length});
             }
             await fs.writeFile("incoming/manifest.json",JSON.stringify({attachments}));
-      - name: Check reference set does not already exist
-        env:
-          SLUG: ${{ steps.name.outputs.slug }}
-        run: |
-          TARGET="reference/$SLUG"
-          test ! -e "$TARGET" || { echo "::error::Reference set already exists: $TARGET"; exit 1; }
       - name: Prepare frames and notes
         env:
           REFERENCE_SLUG: ${{ steps.name.outputs.slug }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
         run: python .github/scripts/process-reference-set.py incoming incoming/manifest.json "reference/$REFERENCE_SLUG" "$GITHUB_EVENT_PATH"
-      - name: Create pull request
-        id: pr
+      - name: Commit reference set to main and verify repository copy
+        id: commit
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLUG: ${{ steps.name.outputs.slug }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
+          set -euo pipefail
           TARGET="reference/$SLUG"
-          BRANCH="review/reference-$SLUG-issue-$ISSUE_NUMBER"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
           git add "$TARGET"
+          git diff --cached --quiet && { echo "::error::No reference files were prepared."; exit 1; }
           git commit -m "Add reference set $SLUG from issue #$ISSUE_NUMBER"
-          git push origin "$BRANCH"
-          URL=$(gh pr create --base main --head "$BRANCH" --title "Add reference set: $SLUG" --body "Prepared from issue #$ISSUE_NUMBER. Review notes.md and merge to add this reference set.")
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          COMMIT=$(git rev-parse HEAD)
+          git push origin HEAD:main
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          git fetch origin main
+          git checkout --detach origin/main
+          python - "$TARGET" <<'PY'
+          import sys
+          from pathlib import Path
+          from PIL import Image
+          folder = Path(sys.argv[1])
+          if not (folder / "notes.md").is_file():
+              raise SystemExit("Committed reference set is missing notes.md")
+          images = sorted(p for p in folder.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"})
+          if not images or len(images) > 6:
+              raise SystemExit(f"Expected 1–6 committed frames, found {len(images)}")
+          for path in images:
+              with Image.open(path) as im:
+                  im.verify()
+              with Image.open(path) as im:
+                  width, height = im.size
+                  if width > 1280:
+                      raise SystemExit(f"{path.name} exceeds 1280 px width: {width}")
+              print(f"Verified {path}: {path.stat().st_size} bytes, {width}x{height}")
+          PY
       - name: Comment on issue
         if: always()
         uses: actions/github-script@v7
         env:
-          PR_URL: ${{ steps.pr.outputs.url }}
+          COMMIT_SHA: ${{ steps.commit.outputs.commit }}
+          COMMIT_OUTCOME: ${{ steps.commit.outcome }}
           SLUG: ${{ steps.name.outputs.slug }}
         with:
           script: |
-            const url=process.env.PR_URL;
-            const body=url
-              ? "Reference set prepared in `reference/"+process.env.SLUG+"/`. Review and merge: "+url+"\n\nUp to six optimized JPG/PNG frames and notes.md were created. Add TAKE:, IGNORE:, MOTION:, and FRAME 1: descriptions to the issue body to populate the notes."
-              : "Reference set upload failed. Check the workflow run in the Actions tab for details.";
+            const sha=process.env.COMMIT_SHA;
+            const run=context.serverUrl+"/"+context.repo.owner+"/"+context.repo.repo+"/actions/runs/"+context.runId;
+            const body=process.env.COMMIT_OUTCOME==="success" && sha
+              ? "Reference set `reference/"+process.env.SLUG+"/` was committed directly to `main`. [View commit]("+context.serverUrl+"/"+context.repo.owner+"/"+context.repo.repo+"/commit/"+sha+").\\n\\nThe repository copy was read back and every frame was verified as an image. Up to six optimized JPG/PNG frames and notes.md were saved. Source videos were not committed; only extracted frames were kept."
+              : "Reference set upload failed. [View workflow run]("+run+") for the failing step and error.";
             await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.payload.issue.number,body});
