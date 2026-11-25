@@ -130,12 +130,12 @@ const DustCloud:React.FC<{warm?:boolean}> = ({warm=false})=>{
 const LensedRearArc:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=>
  <group rotation={[tilt,0,0]} position={[0,.62,0]}>
   <mesh rotation={[Math.PI/2,0,0]}>
-   <torusGeometry args={[2.38,.105,12,192,Math.PI*1.04]}/>
-   <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.96}/>
+   <torusGeometry args={[2.42,.085,12,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.84}/>
   </mesh>
   <mesh rotation={[Math.PI/2,0,0]}>
-   <torusGeometry args={[2.42,.23,10,192,Math.PI*1.04]}/>
-   <meshBasicMaterial color={warm?"#ffbd6d":"#83dcff"} transparent opacity={.18}/>
+   <torusGeometry args={[2.46,.16,10,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#ffbd6d":"#83dcff"} transparent opacity={.10}/>
   </mesh>
  </group>;
 
@@ -145,7 +145,7 @@ const BlackHoleSet:React.FC<{shot:Shot}> = ({shot})=>{
   <color attach="background" args={[wide?"#02040a":warm?"#05050b":"#02050a"]}/>
   <fog attach="fog" args={["#03050b",22,52]}/>
   <ambientLight intensity={.06}/>
-  <pointLight position={[0,5,4]} intensity={58} distance={19} color={warm?"#ffc47d":"#c4f5ff"}/>
+  <pointLight position={[0,5,4]} intensity={warm?4:3} distance={9} color={warm?"#ffc47d":"#c4f5ff"}/>
   <StarLayers/>
   <EventHorizon/>
   <DiskPlane warm={warm} wide={wide} tilt={tilt}/>
