@@ -140,8 +140,8 @@ const LensedRearArc:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=
    <torusGeometry args={[2.42,.075,12,192,Math.PI*1.04]}/>
    <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.88}/>
   </mesh>
-  <mesh>
-   <torusGeometry args={[2.38,.035,8,192,Math.PI,Math.PI]}/>
+  <mesh rotation={[0,0,Math.PI]}>
+   <torusGeometry args={[2.38,.035,8,192,Math.PI]}/>
    <meshBasicMaterial color={warm?"#ffc47d":"#bcefff"} transparent opacity={.22}/>
   </mesh>
  </group>;
