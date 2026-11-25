@@ -24,6 +24,7 @@ const seeded=(seed:number)=>{let n=seed;return ()=>{n=(n*1664525+1013904223)>>>0
 
 const StarLayers:React.FC=()=>{
  const far=useRef<THREE.Points>(null),mid=useRef<THREE.Points>(null),near=useRef<THREE.Points>(null);
+ const frame=useCurrentFrame(),{fps}=useVideoConfig();
  const make=(count:number,radius:number,depth:number,seed:number)=>{
   const rand=seeded(seed),a=new Float32Array(count*3);
   for(let i=0;i<count;i++){const theta=rand()*TAU,r=radius*(.25+rand());a[i*3]=Math.cos(theta)*r;a[i*3+1]=(rand()-.5)*depth;a[i*3+2]=Math.sin(theta)*r;}
@@ -32,8 +33,8 @@ const StarLayers:React.FC=()=>{
  const farPos=useMemo(()=>make(900,28,28,11),[]);
  const midPos=useMemo(()=>make(310,18,18,43),[]);
  const nearPos=useMemo(()=>make(90,12,12,101),[]);
- useFrame(({clock})=>{
-  const t=clock.getElapsedTime();
+ useFrame(()=>{
+  const t=frame/fps;
   if(far.current)far.current.rotation.y=t*.0015;
   if(mid.current)mid.current.rotation.y=-t*.003;
   if(near.current)near.current.rotation.y=t*.006;
@@ -50,7 +51,8 @@ const EventHorizon:React.FC=()=> <mesh>
 
 const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=false,wide=false,tilt})=>{
  const ref=useRef<THREE.Group>(null);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.035;});
+ const frame=useCurrentFrame(),{fps}=useVideoConfig();
+ useFrame(()=>{if(ref.current)ref.current.rotation.y=(frame/fps)*.10;});
  const inner=2.12,outer=wide?5.7:5.15;
  const geometry=useMemo(()=>{
   const segments=192,radial=34,vertices:number[]=[],colors:number[]=[],indices:number[]=[];
@@ -62,7 +64,6 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
    for(let i=0;i<=segments;i++){
     const a=i/segments*TAU;
     const turbulence=(Math.sin(a*11+r*2.8)+Math.sin(a*23-r*4.2)*.55+Math.sin(a*39+r*7.1)*.22)/1.77;
-    const width=(.07+.18*(1-u))*(1+.34*turbulence);
     const y=Math.sin(a*6+r*4)*.018*(1-u)+Math.sin(a*13-r*2)*.012;
     vertices.push(Math.cos(a)*r,y,Math.sin(a)*r);
     const c=innerC.clone().lerp(midC,THREE.MathUtils.smoothstep(u,.02,.55)).lerp(outerC,THREE.MathUtils.smoothstep(u,.58,1));
@@ -77,7 +78,7 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
   g.setIndex(indices);g.computeVertexNormals();return g;
  },[warm,wide]);
  return <group ref={ref} rotation={[tilt,0,0]}>
-  <mesh geometry={geometry} rotation={[Math.PI/2,0,0]}>
+  <mesh geometry={geometry}>
    <meshBasicMaterial vertexColors side={THREE.DoubleSide} transparent opacity={.92}/>
   </mesh>
   <mesh rotation={[Math.PI/2,0,0]}>
@@ -89,6 +90,7 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
 
 const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm=false,tilt,count=120})=>{
  const ref=useRef<THREE.Group>(null);
+ const frame=useCurrentFrame(),{fps}=useVideoConfig();
  const curves=useMemo(()=>{
   const rand=seeded(warm?202:77);
   return Array.from({length:count},(_,i)=>{
@@ -102,7 +104,7 @@ const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm
    return new THREE.CatmullRomCurve3(pts);
   });
  },[count,warm]);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.052;});
+ useFrame(()=>{if(ref.current)ref.current.rotation.y=(frame/fps)*.12;});
  return <group ref={ref} rotation={[tilt,0,0]}>
   {curves.map((curve,i)=><mesh key={i}>
    <tubeGeometry args={[curve,36,.006+(i%5)*.003,4,false]}/>
@@ -113,6 +115,7 @@ const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm
 
 const DustCloud:React.FC<{warm?:boolean}> = ({warm=false})=>{
  const ref=useRef<THREE.Points>(null);
+ const frame=useCurrentFrame(),{fps}=useVideoConfig();
  const positions=useMemo(()=>{
   const rand=seeded(warm?501:301),n=2200,a=new Float32Array(n*3);
   for(let i=0;i<n;i++){
@@ -123,17 +126,17 @@ const DustCloud:React.FC<{warm?:boolean}> = ({warm=false})=>{
   }
   return a;
  },[warm]);
- useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*.03;});
+ useFrame(()=>{if(ref.current)ref.current.rotation.y=(frame/fps)*.14;});
  return <points ref={ref}><bufferGeometry><bufferAttribute attach="attributes-position" args={[positions,3]}/></bufferGeometry><pointsMaterial color={warm?"#f6b06d":"#70c7ee"} size={.035} transparent opacity={.28} sizeAttenuation depthWrite={false}/></points>;
 };
 
 const LensedRearArc:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=>
  <group rotation={[tilt,0,0]} position={[0,.62,0]}>
-  <mesh rotation={[Math.PI/2,0,0]}>
+  <mesh>
    <torusGeometry args={[2.42,.085,12,192,Math.PI*1.04]}/>
    <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.84}/>
   </mesh>
-  <mesh rotation={[Math.PI/2,0,0]}>
+  <mesh>
    <torusGeometry args={[2.46,.16,10,192,Math.PI*1.04]}/>
    <meshBasicMaterial color={warm?"#ffbd6d":"#83dcff"} transparent opacity={.10}/>
   </mesh>
