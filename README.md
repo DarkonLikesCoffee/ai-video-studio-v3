@@ -8,6 +8,19 @@ User reference sets live in `reference/<name>/` and contain up to 6 JPG or PNG f
 Keep frames at 1280 px wide max (ideally under 800 KB each); the existing images directly in `reference/` remain the default 3D references.
 For videos, use evenly spaced extracted frames rather than committing video files.
 
+## Uploading user reference sets
+
+Create an issue titled `Reference set: <name>` and attach JPG, PNG, WebP, MP4, MOV, or WebM files. The issue author must be the repository owner. The workflow downloads the attachments, prepares up to six frames (images resized to 1280 px wide max; videos sampled at evenly spaced timestamps), and opens a pull request adding `reference/<name>/`.
+
+Add optional notes as plain lines in the issue body:
+
+- `TAKE: ...` — visual qualities to borrow.
+- `IGNORE: ...` — elements to avoid.
+- `MOTION: ...` — camera movement and pacing.
+- `FRAME 1: ...` — factual description of the first prepared frame; repeat for each frame.
+
+The workflow does not generate AI image descriptions. If a FRAME description is omitted, notes.md explicitly marks it for inspection. Review the pull request and merge it to make the set available.
+
 ## npm scripts
 
 - `npm run check` — run the TypeScript check.

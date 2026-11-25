@@ -1,0 +1,94 @@
+name: Upload reference set
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+jobs:
+  upload:
+    if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, 'Reference set:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate name
+        id: name
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const raw=context.payload.issue.title.replace(/^Reference set:\s*/i,"").trim();
+            const slug=raw.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+            if(!slug || slug.length>48) throw new Error("Use: Reference set: spaceship-cinematic");
+            core.setOutput("slug",slug);
+      - name: Install media tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install Pillow
+      - name: Download attachments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs=require("fs/promises");
+            const body=context.payload.issue.body||"";
+            const urls=[...new Set(body.match(/https:\/\/github\.com\/user-attachments\/(?:assets|files)\/[^\s"'<>)]*/g)||[])];
+            if(!urls.length) throw new Error("No attachments found in issue body.");
+            await fs.mkdir("incoming",{recursive:true});
+            const types={"image/jpeg":["image","jpg"],"image/png":["image","png"],"image/webp":["image","webp"],"video/mp4":["video","mp4"],"video/quicktime":["video","mov"],"video/webm":["video","webm"]};
+            const attachments=[]; let total=0;
+            for(let i=0;i<urls.length;i++){
+              const u=new URL(urls[i]);
+              if(u.hostname!=="github.com"||!u.pathname.startsWith("/user-attachments/")) throw new Error("Invalid attachment URL");
+              const r=await fetch(urls[i],{redirect:"follow",signal:AbortSignal.timeout(60000)});
+              if(!r.ok) throw new Error("Download failed: HTTP "+r.status);
+              const type=(r.headers.get("content-type")||"").split(";")[0].toLowerCase();
+              if(!types[type]) throw new Error("Unsupported media type: "+type);
+              const b=Buffer.from(await r.arrayBuffer()); total+=b.length;
+              if(b.length>50*1024*1024||total>150*1024*1024) throw new Error("Size limit: 50 MiB each, 150 MiB total.");
+              const [kind,ext]=types[type],filename="file-"+String(i+1).padStart(2,"0")+"."+ext;
+              await fs.writeFile("incoming/"+filename,b);
+              attachments.push({filename,kind,content_type:type,bytes:b.length});
+            }
+            await fs.writeFile("incoming/manifest.json",JSON.stringify({attachments}));
+      - name: Prepare frames and notes
+        env:
+          REFERENCE_SLUG: ${{ steps.name.outputs.slug }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: python .github/scripts/process-reference-set.py incoming incoming/manifest.json "reference/$REFERENCE_SLUG" "$GITHUB_EVENT_PATH"
+      - name: Create pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLUG: ${{ steps.name.outputs.slug }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          TARGET="reference/$SLUG"
+          test ! -e "$TARGET" || { echo "Reference set already exists: $TARGET"; exit 1; }
+          BRANCH="review/reference-$SLUG-issue-$ISSUE_NUMBER"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "$TARGET"
+          git commit -m "Add reference set $SLUG from issue #$ISSUE_NUMBER"
+          git push origin "$BRANCH"
+          URL=$(gh pr create --base main --head "$BRANCH" --title "Add reference set: $SLUG" --body "Prepared from issue #$ISSUE_NUMBER. Review notes.md and merge to add this reference set.")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Comment on issue
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+          SLUG: ${{ steps.name.outputs.slug }}
+        with:
+          script: |
+            const url=process.env.PR_URL;
+            const body=url
+              ? "Reference set prepared in `reference/"+process.env.SLUG+"/`. Review and merge: "+url+"\n\nUp to six optimized JPG/PNG frames and notes.md were created. Add TAKE:, IGNORE:, MOTION:, and FRAME 1: descriptions to the issue body to populate the notes."
+              : "Reference set upload failed. Check the workflow run in the Actions tab for details.";
+            await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.payload.issue.number,body});
