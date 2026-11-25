@@ -46,5 +46,4 @@ def main():
  for f in frames:
   lines += [f"### {f['name']}",f"- Visible content: {f['description']}",f"- Source: {f['source']}",f"- Dimensions: {f['width']} × {f['height']}",f"- Size: {f['bytes']} bytes",f"- SHA-256: `{f['sha256']}`",""]
  (out/"notes.md").write_text("\n".join(lines)+"\n")
- (out/"upload-summary.json").write_text(json.dumps({"slug":slug,"frames":frames},indent=2))
 if __name__=="__main__": main()
