@@ -1,16 +1,18 @@
 # BlackHole — review round 1
 
-The workflow for the first render metadata commit was skipped. No rendered PNG or contact sheet was produced or inspected; therefore this is a risk register, not a completed visual review.
+Inspected the rendered PNGs and contact sheet from workflow run 45662497800 against attached reference images 01, 03 and 04. Actual output was reviewed.
 
-## Three main aesthetic risks to evaluate
-1. The lensed arc may read as detached neon torus geometry rather than light bent around the event horizon.
-2. The accretion bands may appear too geometrically regular and lack convincing turbulent plasma.
-3. The oblique disk may obscure too much of the event-horizon contour.
+## Three biggest aesthetic problems
+1. Accretion disk reads as stacked, clean torus bands rather than broad, turbulent dusty plasma. In frames 180 and 300 the result resembles a Saturn ring; its polygonal ends and uniform stripes diverge from reference-03's soft, grainy disk.
+2. Lensing reads as concentric hoops. The bright loops encircle the shadow rather than forming the high luminous crown and partially visible lower arc in reference-01 and reference-03.
+3. Close-up does not match reference-04's diagonal depth. Frames 480 and 611 show a near-frontal circular coil crossed by a thin horizontal band, not a thick lower-left-to-upper-right foreground flow. Warm colors are flat and banded instead of white-hot with textured amber/copper plasma.
 
 ## Motion check
-Planned camera push and oblique drift; disk group rotates slowly. Subject orientation/travel cannot be reported from rendered samples because no samples were produced.
+Frames 000–180 show gradual camera approach, but the hero interval is visually repetitive across one-second samples. The final warm view remains nearly frontal; clear diagonal travel is absent. The code rotates the disk slowly, but the visible motion is not persuasive enough.
 
 ## Technical issues
-- Render workflow: skipped for initial metadata commit.
-- npm check/stills/contact sheet: not verified.
-- Comparison against frame-03 and frame-04: not performed.
+- npm ci succeeded.
+- Selected PNG still renders succeeded.
+- Contact-sheet render succeeded.
+- Final MP4 intentionally skipped in round 1.
+- npm run check is not run by the review workflow and has not been verified.
