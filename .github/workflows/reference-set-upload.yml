@@ -22,7 +22,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const raw=context.payload.issue.title.replace(/^Reference set:\\s*/i,"").trim();
+            const raw=context.payload.issue.title.replace(/^Reference set:\s*/i,"").trim();
             const slug=raw.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
             if(!slug || slug.length>48) throw new Error("Use: Reference set: spaceship-cinematic");
             core.setOutput("slug",slug);
@@ -37,7 +37,7 @@ jobs:
           script: |
             const fs=require("fs/promises");
             const body=context.payload.issue.body||"";
-            const urls=[...new Set(body.match(/https:\\/\\/github\\.com\\/user-attachments\\/(?:assets|files)\\/[^\\s"'<>)]*/g)||[])];
+            const urls=[...new Set(body.match(/https:\/\/github\.com\/user-attachments\/(?:assets|files)\/[^\s"'<>)]*/g)||[])];
             if(!urls.length) throw new Error("No attachments found in issue body.");
             await fs.mkdir("incoming",{recursive:true});
             const types={"image/jpeg":["image","jpg"],"image/png":["image","png"],"image/webp":["image","webp"],"video/mp4":["video","mp4"],"video/quicktime":["video","mov"],"video/webm":["video","webm"]};
