@@ -74,6 +74,7 @@ jobs:
           SLUG: ${{ steps.name.outputs.slug }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
+          TARGET="reference/$SLUG"
           BRANCH="review/reference-$SLUG-issue-$ISSUE_NUMBER"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
