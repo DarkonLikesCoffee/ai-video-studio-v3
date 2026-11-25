@@ -14,7 +14,7 @@ const CameraMove:React.FC<{shot:Shot}> = ({shot})=>{
   const t=frame/Math.max(1,durationInFrames-1);
   if(shot==="wide") camera.position.set(.2+Math.sin(t*1.5)*.22,2.2+Math.sin(t*2)*.12,15.5-3.2*t);
   else if(shot==="hero") camera.position.set(.15+Math.sin(t*1.3)*.34,1.2+Math.sin(t*1.6)*.15,10.5-1.1*t);
-  else camera.position.set(3.5-t*1.2,3.8-t*.8,11-t*1.7);
+  else camera.position.set(4.2-t*.55,4.0-t*.35,15.5-t*1.0);
   camera.lookAt(0,0,0);
  });
  return null;
@@ -64,10 +64,10 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
    for(let i=0;i<=segments;i++){
     const a=i/segments*TAU;
     const turbulence=(Math.sin(a*11+r*2.8)+Math.sin(a*23-r*4.2)*.55+Math.sin(a*39+r*7.1)*.22)/1.77;
-    const y=Math.sin(a*6+r*4)*.018*(1-u)+Math.sin(a*13-r*2)*.012;
+    const y=turbulence*.045*(1-u)+Math.sin(a*13-r*2)*.018;
     vertices.push(Math.cos(a)*r,y,Math.sin(a)*r);
     const c=innerC.clone().lerp(midC,THREE.MathUtils.smoothstep(u,.02,.55)).lerp(outerC,THREE.MathUtils.smoothstep(u,.58,1));
-    const noise=.9+.1*Math.sin(i*2.8+j*3.7);
+    const noise=.78+.22*(.5+.5*Math.sin(i*2.8+j*3.7+turbulence*5));
     colors.push(c.r*noise,c.g*noise,c.b*noise);
    }
   }
@@ -77,7 +77,7 @@ const DiskPlane:React.FC<{warm?:boolean;wide?:boolean;tilt:number}> = ({warm=fal
   g.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
   g.setIndex(indices);g.computeVertexNormals();return g;
  },[warm,wide]);
- return <group ref={ref} rotation={[tilt,0,0]}>
+ return <group ref={ref} rotation={[tilt,0,warm?-.52:0]}>
   <mesh geometry={geometry}>
    <meshBasicMaterial vertexColors side={THREE.DoubleSide} transparent opacity={.92}/>
   </mesh>
@@ -93,7 +93,7 @@ const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm
  const frame=useCurrentFrame(),{fps}=useVideoConfig();
  const curves=useMemo(()=>{
   const rand=seeded(warm?202:77);
-  return Array.from({length:count},(_,i)=>{
+  return Array.from({length:warm?170:120},(_,i)=>{
    const a=rand()*TAU,r0=2.35+rand()*.6,r1=3.5+rand()*2.2,skew=(rand()-.5)*.24;
    const pts:THREE.Vector3[]=[];
    for(let j=0;j<28;j++){
@@ -105,10 +105,10 @@ const PlasmaStreaks:React.FC<{warm?:boolean;tilt:number;count?:number}> = ({warm
   });
  },[count,warm]);
  useFrame(()=>{if(ref.current)ref.current.rotation.y=(frame/fps)*.12;});
- return <group ref={ref} rotation={[tilt,0,0]}>
+ return <group ref={ref} rotation={[tilt,0,warm?-.52:0]}>
   {curves.map((curve,i)=><mesh key={i}>
    <tubeGeometry args={[curve,36,.006+(i%5)*.003,4,false]}/>
-   <meshBasicMaterial color={warm?(i%5===0?"#fff6d8":i%2?"#e68c4e":"#a74b24"):(i%5===0?"#ffffff":i%2?"#80d9ff":"#286eaa")} transparent opacity={.14+(i%6)*.035}/>
+   <meshBasicMaterial color={warm?(i%5===0?"#fff7e8":i%2?"#ffbf75":"#ff8b3d"):(i%5===0?"#ffffff":i%2?"#80d9ff":"#286eaa")} transparent opacity={warm?.30+(i%6)*.035:.14+(i%6)*.035}/>
   </mesh>)}
  </group>;
 };
@@ -131,14 +131,18 @@ const DustCloud:React.FC<{warm?:boolean}> = ({warm=false})=>{
 };
 
 const LensedRearArc:React.FC<{warm?:boolean;tilt:number}> = ({warm=false,tilt})=>
- <group rotation={[tilt,0,0]} position={[0,.62,0]}>
+ <group position={[0,.62,0]}>
   <mesh>
-   <torusGeometry args={[2.42,.085,12,192,Math.PI*1.04]}/>
-   <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.84}/>
+   <torusGeometry args={[2.46,.24,10,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#ffb66c":"#69cfff"} transparent opacity={.13}/>
   </mesh>
   <mesh>
-   <torusGeometry args={[2.46,.16,10,192,Math.PI*1.04]}/>
-   <meshBasicMaterial color={warm?"#ffbd6d":"#83dcff"} transparent opacity={.10}/>
+   <torusGeometry args={[2.42,.075,12,192,Math.PI*1.04]}/>
+   <meshBasicMaterial color={warm?"#fff1d0":"#edffff"} transparent opacity={.88}/>
+  </mesh>
+  <mesh>
+   <torusGeometry args={[2.38,.035,8,192,Math.PI,Math.PI]}/>
+   <meshBasicMaterial color={warm?"#ffc47d":"#bcefff"} transparent opacity={.22}/>
   </mesh>
  </group>;
 
@@ -152,7 +156,7 @@ const BlackHoleSet:React.FC<{shot:Shot}> = ({shot})=>{
   <StarLayers/>
   <EventHorizon/>
   <DiskPlane warm={warm} wide={wide} tilt={tilt}/>
-  <LensedRearArc warm={warm} tilt={tilt}/>
+  <LensedRearArc warm={warm} tilt={0}/>
   <DustCloud warm={warm}/>
   <PlasmaStreaks warm={warm} tilt={tilt}/>
  </>;
