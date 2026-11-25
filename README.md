@@ -2,6 +2,12 @@
 
 A Remotion-based video studio. Videos are authored as code-first compositions in `src/compositions/<slug>/`, with shared components in `src/shared/`.
 
+## Reference sets
+
+User reference sets live in `reference/<name>/` and contain up to 6 JPG or PNG frames plus a `notes.md` describing what to borrow and ignore.
+Keep frames at 1280 px wide max (ideally under 800 KB each); the existing images directly in `reference/` remain the default 3D references.
+For videos, use evenly spaced extracted frames rather than committing video files.
+
 ## npm scripts
 
 - `npm run check` — run the TypeScript check.
