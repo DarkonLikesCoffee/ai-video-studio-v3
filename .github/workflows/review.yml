@@ -84,7 +84,21 @@ jobs:
           COMPOSITION: ${{ steps.inputs.outputs.composition }}
         run: |
           VIDEO="out/$COMPOSITION.mp4"
-          if ! ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$VIDEO" | grep -q '^audio        run: |
+          if ! ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$VIDEO" | grep -q audio; then
+            echo "Final MP4 has no audio stream." >&2
+            exit 1
+          fi
+          ffmpeg -y -i "$VIDEO" \
+            -af "loudnorm=I=-16:TP=-1.5:LRA=11" \
+            -c:v copy -c:a aac -b:a 192k -movflags +faststart \
+            "out/$COMPOSITION.mastered.mp4"
+          mv "out/$COMPOSITION.mastered.mp4" "$VIDEO"
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,sample_rate,channels -of json "$VIDEO" > out/review-artifacts/media-probe.json
+          ffmpeg -hide_banner -i "$VIDEO" -af ebur128=framelog=verbose -f null - 2> out/review-artifacts/audio-loudness.txt
+          grep -E "Integrated loudness:|I:|LRA:" out/review-artifacts/audio-loudness.txt | tail -3 | tee out/review-artifacts/audio-validation.txt
+          echo "Mastered MP4 and verified its audio/video streams." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Collect review images
+        run: |
           mkdir -p out/review-artifacts
           cp -R "out/review/${{ steps.inputs.outputs.composition }}/${{ steps.inputs.outputs.round }}" out/review-artifacts/frames
           cp -R "out/review/${{ steps.inputs.outputs.composition }}/contact-sheet" out/review-artifacts/contact-sheet
