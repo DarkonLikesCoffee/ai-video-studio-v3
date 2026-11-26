@@ -45,8 +45,8 @@ const Backdrop:React.FC<{f:number}>=({f})=><svg viewBox="0 0 1920 1080" width="1
 <rect width="1920" height="1080" fill="url(#trig-bg)"/><rect width="1920" height="1080" fill="url(#trig-grid)"/>
 {Array.from({length:30},(_,i)=><circle key={i} cx={(i*193+f*(.16+i%3*.07))%1920} cy={(i*89+Math.sin(f*.012+i)*20+1080)%1080} r={i%5===0?3:1.5} fill={i%2?C.cyan:C.paper} opacity=".2"/>)}</svg>;
 
-const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
- const cx=500,cy=590,r=260,th=angle(id,f,d),p=polar(cx,cy,r,th);
+const Diagram:React.FC<{f:number;globalFrame:number;id:SceneId;d:number}>=({f,globalFrame,id,d})=>{
+ const cx=500,cy=590,r=260,th=angle(id,f,d),p=polar(cx,cy,r,th),arcLength=r*THETA;
  const tri=["triangle","sine","cosine","pythagorean","recap"].includes(id);
  const quad=((Math.floor((((th%TAU)+TAU)%TAU)/(Math.PI/2))%4)+1);
  const sy=Math.sin(th),co=Math.cos(th),ta=Math.tan(th);
@@ -62,7 +62,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  return <svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
  <defs><linearGradient id="trig-radius"><stop stopColor={C.gold}/><stop offset="1" stopColor={C.coral}/></linearGradient><filter id="trig-shadow"><feGaussianBlur stdDeviation="8"/></filter></defs>
  {/* Persistent circle, axes, radius and moving point */}
- <circle cx={cx} cy={cy} r={r+34} fill="none" stroke={C.cyan} strokeOpacity=".12" strokeWidth="2" strokeDasharray="3 14" transform={`rotate(${f*.035} ${cx} ${cy})`}/>
+ <circle cx={cx} cy={cy} r={r+34} fill="none" stroke={C.cyan} strokeOpacity=".12" strokeWidth="2" strokeDasharray="3 14" transform={`rotate(${globalFrame*.035} ${cx} ${cy})`}/>
  <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.paper} strokeOpacity=".65" strokeWidth="4"/>
  {ln(cx-r-90,cy,cx+r+100,cy,"#91A4B9",2,.7)}{ln(cx,cy-r-90,cx,cy+r+90,"#91A4B9",2,.7)}
  {tx(cx+r+110,cy+8,"x",C.paper,21)}{tx(cx+12,cy-r-100,"y",C.paper,21)}{tx(cx-18,cy+34,"O",C.paper,20,"end")}
@@ -76,9 +76,11 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  {/* Radian arc unrolled alongside the circle */}
  {id==="radians"&&<g>
   <path d={`M ${cx+r} ${cy} A ${r} ${r} 0 0 0 ${p.x} ${p.y}`} fill="none" stroke={C.cyan} strokeWidth="9"/>
-  {ln(880,380,880+r*THETA,380,C.cyan,9)}{ln(880,365,880,395,C.paper,2)}{ln(880+r*THETA,365,880+r*THETA,395,C.paper,2)}
-  {tx(880,340,"unrolled arc",C.cyan,18)}{tx(880+r*THETA/2,425,"s = rθ = 0.628",C.paper,22,"middle")}
+  {ln(880,380,880+arcLength,380,C.cyan,9)}{ln(880,365,880,395,C.paper,2)}{ln(880+arcLength,365,880+arcLength,395,C.paper,2)}
+  {tx(880,340,"unrolled arc",C.cyan,18)}{tx(880+arcLength/2,425,`s = rθ = 1 × θ = ${fmt(THETA)} units`,C.paper,21,"middle")}
+  <path d={`M ${cx+r} ${cy} A ${r} ${r} 0 0 0 ${cx+r*Math.cos(1)} ${cy-r*Math.sin(1)}`} fill="none" stroke={C.gold} strokeWidth="5" strokeLinecap="round"/>
   {ln(880,480,880+r,480,C.gold,5)}{tx(880+r/2,520,"1 rad = 1 unit of arc",C.gold,20,"middle")}
+  {tx(880,570,"θ = 36° = π/5 rad",C.paper,23)}
  </g>}
  {/* Triangle legs build in sequence */}
  {tri&&<g>
@@ -107,7 +109,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
   {!undefinedTan&&ln(cx+r,cy,cx+r,tangentY,C.cyan,11)}
   {tx(cx+r+22,Math.max(230,Math.min(890,(cy+tangentY)/2)),undefinedTan?"undefined (cos θ = 0)":`tan θ = ${fmt(ta)}`,C.cyan,20)}
   {tx(1050,355,"TANGENT LENGTH",C.gold,18)}{tx(1050,415,undefinedTan?"undefined":fmt(ta),C.paper,40)}
-  {tx(1050,470,"tan θ = sin θ / cos θ",C.paper,24)}
+  {tx(1050,470,"tan θ =",C.paper,24)}{tx(1175,454,"sin θ",C.paper,21,"middle")}{ln(1135,463,1215,463,C.paper,2)}{tx(1175,490,"cos θ",C.paper,21,"middle")}
  </g>}
  {/* Quadrant sign readout and ASTC memory chip */}
  {id==="quadrants"&&<g>
@@ -136,7 +138,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
     {tx(1142+i*225,420,`${deg}°`,active?C.gold:C.paper,28,"middle")}
     {tx(1060+i*225,478,`sin ${exactRows[0]}`,C.cyan,17)}{tx(1060+i*225,505,`≈ ${fmt(Math.sin(a))}`,C.paper,16)}
     {tx(1060+i*225,550,`cos ${exactRows[1]}`,C.coral,17)}{tx(1060+i*225,577,`≈ ${fmt(Math.cos(a))}`,C.paper,16)}
-    {tx(1060+i*225,620,`tan ${exactRows[2]}`,C.gold,17)}
+    {tx(1060+i*225,615,`tan ${exactRows[2]}`,C.gold,16)}{tx(1060+i*225,640,`≈ ${fmt(Math.tan(a))}`,C.paper,15)}
   </g>})}
  </g>}
  {/* Final formula recap */}
@@ -144,7 +146,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
   <rect x="1020" y="300" width="700" height="390" rx="26" fill="#17283C" stroke="#3D566E"/>
   {tx(1080,380,"sin θ",C.cyan,38)}{tx(1330,380,"= y",C.paper,38)}
   {tx(1080,475,"cos θ",C.coral,38)}{tx(1330,475,"= x",C.paper,38)}
-  {tx(1080,570,"tan θ",C.gold,38)}{tx(1330,570,"= y / x",C.paper,38)}
+  {tx(1080,570,"tan θ",C.gold,38)}{tx(1330,555,"= y",C.paper,31,"middle")}{ln(1305,566,1355,566,C.paper,2)}{tx(1330,592,"x",C.paper,31,"middle")}
   {tx(1080,650,`At 36°: (${fmt(COS)}, ${fmt(SIN)})`,C.paper,23)}
  </g>}
  {/* Numeric readout is always live */}
@@ -176,7 +178,7 @@ export const TrigonometryCircle:React.FC=()=>{
  const panX=interpolate(cam,[0,1],[10,0]);
  return <AbsoluteFill style={{background:C.ink,fontFamily:"Inter,Arial,sans-serif",overflow:"hidden"}}>
   <Backdrop f={f}/>
-  <div style={{position:"absolute",inset:0,transform:`translateX(${panX}px) scale(${scale})`,transformOrigin:"50% 50%"}}><Diagram f={f} id={s.id} d={s.duration}/></div>
+  <div style={{position:"absolute",inset:0,transform:`translateX(${panX}px) scale(${scale})`,transformOrigin:"50% 50%"}}><Diagram f={local} globalFrame={f} id={s.id} d={s.duration}/></div>
   {SCENES.map(scene=><Sequence key={scene.id} from={scene.from} durationInFrames={scene.duration} name={scene.id}><SceneTitle scene={scene}/></Sequence>)}
   <div style={{position:"absolute",left:96,right:96,bottom:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
    <div style={{fontSize:14,color:"#AAB8C8",letterSpacing:3,fontWeight:800}}>TRIGONOMETRY / UNIT CIRCLE</div>
