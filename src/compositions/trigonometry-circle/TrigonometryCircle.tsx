@@ -95,8 +95,8 @@ const Diagram:React.FC<{f:number;globalFrame:number;id:SceneId;d:number}>=({f,gl
   {ln(p.x,p.y,p.x,cy,C.cyan,9)}{ln(p.x,p.y,cx,p.y,C.cyan,2,.65,"7 9")}{ln(cx,cy,p.x,cy,C.coral,9)}
   <rect x="1010" y="290" width="700" height="360" rx="26" fill="#17283C" stroke="#3D566E"/>
   {tx(1060,350,id==="sine"?"SINE / LIVE HEIGHT":"COSINE / LIVE WIDTH",C.cyan,18)}
-  {tx(1060,425,id==="sine"?`sin 36° = ${fmt(SIN)}`:`cos 36° = ${fmt(COS)}`,C.paper,37)}
-  {tx(1060,480,id==="sine"?"The y-coordinate":"The x-coordinate",C.gold,23)}
+  {tx(1060,425,id==="sine"?`sin θ = ${fmt(sy)}`:`cos θ = ${fmt(co)}`,C.paper,37)}
+  {tx(1060,480,id==="sine"?`At 36° → ${fmt(SIN)}`:`At 36° → ${fmt(COS)}`,C.gold,23)}
   {tx(graphX,graphY-graphH-28,id==="sine"?"A sine wave, unrolled":"A cosine wave, unrolled",C.paper,20)}
   {ln(graphX,graphY,graphX+graphW,graphY,"#8193A8",2,.65)}{ln(graphX,graphY-graphH,graphX,graphY+12,"#8193A8",2,.65)}{tx(graphX,graphY+28,"0",C.paper,15)}{tx(graphX+graphW,graphY+28,"θ = 36°",C.paper,15,"end")}{tx(graphX-18,graphY-graphH,"1",C.paper,15,"end")}
   {poly(graph,id==="sine"?C.cyan:C.coral,6)}
