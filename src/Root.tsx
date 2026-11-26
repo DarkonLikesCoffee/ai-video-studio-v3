@@ -5,6 +5,7 @@ import { ThreeSmoke } from "./compositions/render-technique-smoke/ThreeSmoke";
 import { ImageSmoke } from "./compositions/render-technique-smoke/ImageSmoke";
 import { NightTrainThree } from "./compositions/night-train-three";
 import { DawnBalloon } from "./compositions/dawn-balloon";
+import { TrigonometryCircle } from "./compositions/trigonometry-circle";
 
 export const RemotionRoot = () => (
  <>
@@ -14,5 +15,6 @@ export const RemotionRoot = () => (
   <Composition id="ImageSmoke" component={ImageSmoke} durationInFrames={150} fps={30} width={1920} height={1080}/>
   <Composition id="NightTrainThree" component={NightTrainThree} durationInFrames={600} fps={30} width={1920} height={1080}/>
   <Composition id="DawnBalloon" component={DawnBalloon} durationInFrames={600} fps={30} width={1920} height={1080}/>
+  <Composition id="TrigonometryCircle" component={TrigonometryCircle} durationInFrames={600} fps={30} width={1920} height={1080}/>
  </>
 );
