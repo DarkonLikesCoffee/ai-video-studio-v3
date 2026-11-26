@@ -1,12 +1,19 @@
-# Round 4 — scene-local animation and mathematical labeling
+# Round 4 — rendered verification
 
-Implemented:
-- Diagram now receives the active scene-local frame for all scene animations, while a separate global frame preserves continuous orbit-ring motion.
-- Radian chapter explicitly labels θ = 36° = π/5 rad, computes the arc length from rθ, and draws a 1-radian reference arc on the circle.
-- Special-angle cards include decimal tangent values alongside exact values.
-- Tangent and recap equations use stacked numerator/denominator SVG fractions.
+The round-4 CI typecheck passed and the review workflow rendered the selected stills, one-second contact sheet, and final MP4 successfully.
 
-Remaining issues to check:
-1. Confirm the sine/cosine sweeps reset from 36° to 0° and then grow smoothly to 36° at frames 390–539 and 540–689.
-2. Confirm the tangent segment grows from tan(36°) and reaches the undefined state only near 90° (frames 690–869).
-3. Check that the new stacked fractions and radian labels remain inside the 80 px safe margins and do not collide with headers or footer.
+Compared frames:
+- Frame 0: title, circle and point are visible.
+- Frame 180: radians chapter shows the 36° arc, explicit θ = 36° = π/5 rad, and the 1-radian reference arc.
+- Frame 420: sine chapter has eased from 36° toward 0°; the point/readout reflects the local angle.
+- Frame 510: sine projection and graph reach approximately 36°.
+- Frame 720: tangent starts at 36° and displays tan θ ≈ 0.727 on the x = 1 tangent.
+- Frame 840: tangent has approached 90° and changes to undefined.
+- Frame 900: quadrant II sign readout shows sine positive, cosine and tangent negative.
+- Frame 1050: proportional leg squares show 0.655 + 0.345 = 1.
+- Frame 1230: 30°, 45°, 60° exact values and decimal approximations are all visible.
+
+Remaining issues found:
+1. At frame 720, the point-coordinate label collides with the vertical tangent segment.
+2. At frame 180, the point-coordinate label is too close to the unrolled arc-length equation.
+3. At frame 420, the graph's trace was parameterized to the final 36° even while the point was still near 0°; the graph axis also began behind the information card. The panel showed the final 36° value rather than the live current value.

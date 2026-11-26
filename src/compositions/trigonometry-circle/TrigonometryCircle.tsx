@@ -52,9 +52,9 @@ const Diagram:React.FC<{f:number;globalFrame:number;id:SceneId;d:number}>=({f,gl
  const sy=Math.sin(th),co=Math.cos(th),ta=Math.tan(th);
  const undefinedTan=id==="tangent"&&Math.abs(Math.cos(th))<.035;
  const tangentY=cy-r*ta;
- const graphX=1050,graphY=790,graphW=630,graphH=160;
+ const graphX=1050,graphY=850,graphW=630,graphH=140;
  const graphProgress=(id==="sine"||id==="cosine")?smooth(f,8,d-24):0;
- const graph=Array.from({length:90},(_,i)=>{const a=i/89*Math.max(THETA,th);const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-v*graphH}}).filter((_,i)=>i/89<=graphProgress);
+ const graph=Array.from({length:90},(_,i)=>{const a=i/89*th;const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-v*graphH}}).filter((_,i)=>i/89<=graphProgress);
  const sinSign=sy>=0?"+":"−",cosSign=co>=0?"+":"−",tanSign=ta>=0?"+":"−";
  const specialIndex=Math.min(2,Math.floor(f/42)),special=([Math.PI/6,Math.PI/4,Math.PI/3][specialIndex] ?? Math.PI/6);
  const exact=([["1/2","√3/2"],["√2/2","√2/2"],["√3/2","1/2"]][specialIndex] ?? ["1/2","√3/2"]) as [string,string];
@@ -70,7 +70,7 @@ const Diagram:React.FC<{f:number;globalFrame:number;id:SceneId;d:number}>=({f,gl
  {ln(cx-10,cy-r,cx+10,cy-r,C.gold,3)}{tx(cx-26,cy-r-12,"1",C.gold,19,"end")}
  {ln(cx,cy,p.x,p.y,"url(#trig-radius)",9)}
  <circle cx={p.x} cy={p.y} r="18" fill="#000" opacity=".2" filter="url(#trig-shadow)"/><circle cx={p.x} cy={p.y} r="13" fill={id==="quadrants"?([C.cyan,C.gold,C.coral,C.paper][quad-1] ?? C.coral):C.coral} stroke={C.paper} strokeWidth="4"/>
- {tx(p.x+22,p.y-20,`(${fmt(co)}, ${fmt(sy)})`,C.paper,19)}
+ {(id==="tangent"||id==="radians")?tx(p.x-18,p.y-24,`(${fmt(co)}, ${fmt(sy)})`,C.paper,18,"end"):tx(p.x+22,p.y-20,`(${fmt(co)}, ${fmt(sy)})`,C.paper,19)}
  <path d={`M ${cx+66} ${cy} A 66 66 0 0 0 ${cx+66*Math.cos(th)} ${cy-66*Math.sin(th)}`} fill="none" stroke={C.gold} strokeWidth="5" strokeLinecap="round"/>
  {tx(cx+96,cy-40,id==="special"?`${[30,45,60][specialIndex]}°`:"θ",C.gold,24)}
  {/* Radian arc unrolled alongside the circle */}
