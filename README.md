@@ -48,7 +48,7 @@ To enable generated narration for a review render:
 2. Replace the example text and choose a supported language/voice.
 3. Push the change to a `review/**` branch. The review workflow downloads/caches
    Kokoro ONNX model files, generates `public/audio/narration.wav`, and writes
-   word/speech timing data to `src/generated/narration-alignment.ts` before Remotion renders.
+   word/speech timing data to `src/generated/narration-alignment.ts` before Remotion renders. Final review MP4s are loudness-mastered to -16 LUFS / -1.5 dBTP and checked for both audio and video streams.
 4. The generated WAV is ignored by Git; the final rendered MP4 contains the audio.
 
 Supported initial settings: Spanish (`es`: `ef_dora`, `em_alex`, `em_santa`)
