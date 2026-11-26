@@ -19,6 +19,27 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python for optional Kokoro narration
+        if: hashFiles('production/narration.json') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cache Kokoro model files
+        if: hashFiles('production/narration.json') != ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ai-video-studio/kokoro-v1.0
+          key: kokoro-onnx-0.6.1-model-files-v1.1-${{ runner.os }}
+      - name: Install optional Kokoro dependencies
+        if: hashFiles('production/narration.json') != ''
+        run: python -m pip install --disable-pip-version-check -r requirements-tts.txt
+      - name: Generate narration and word timings
+        if: hashFiles('production/narration.json') != ''
+        run: |
+          python scripts/generate-narration.py \
+            --config production/narration.json \
+            --project-dir . \
+            --model-dir "$HOME/.cache/ai-video-studio/kokoro-v1.0"
       - name: Read review inputs from commit message
         id: inputs
         shell: bash
