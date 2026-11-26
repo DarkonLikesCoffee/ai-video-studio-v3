@@ -1,1 +1,0 @@
-Round 5 final review render trigger. Video output remains a workflow artifact only.
