@@ -20,3 +20,20 @@ No music or sound effects are added in this pass. Voiceover-ready pacing and cle
 
 ## Review
 Render representative frames at scene starts, mids and ends plus one-second samples, inspect a contact sheet, document the three highest-impact problems, and make at least two fix rounds before the final MP4 render.
+
+
+## Visual review — round 1
+Compared the 0 s opening frame and 10 s sine frame from the rendered contact sheet. Three highest-impact issues:
+1. Opening title/header was effectively invisible at frame 0 because its opacity started at zero.
+2. The static example angle put the point below the x-axis, conflicting with the first-quadrant lesson and making the positive sine/cosine explanations confusing.
+3. The legs were labeled only with function names; learners benefit from seeing the coordinate identity directly (y = sin θ and x = cos θ).
+
+Motion check: the orbiting subject is a point on the circumference. At the first-quadrant lesson angle it faces/travels up and right from the origin along the radius; the orbital point travels clockwise around the circle in the opener. The animation changes visibly between sampled seconds.
+
+## Visual review — round 2
+Compared the corrected 10 s sine frame and 15 s cosine frame from the second rendered contact sheet. The point now sits in the first quadrant; the radius, horizontal and vertical components are clearly distinguishable, and the x/y coordinate identities are visible. Remaining issues to address in a final educational pass:
+- The circle and equations are readable but the numeric angle is not stated; this example is fixed at 36° (π/5), and should be explicit.
+- The tangent chapter should visually demonstrate the ratio and warn that tangent is undefined when x = 0; the current label text supplies the warning but the geometry remains static.
+- The lesson has no narration yet; this is intentional because the current pass is a silent visual explainer and the audio architecture is not yet in scope.
+
+Motion check: the subject remains in the first quadrant and moves through subtle background/parallax motion; the radius and point hold at a stable 36° teaching position after the rotating-circle opener. One-second samples show changing background particles and progress indicator, while the mathematical diagram remains deliberately stable for legibility.
