@@ -64,6 +64,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Type-check the project
+        run: npm run check
       - name: Render selected still frames (swangle)
         env:
           REVIEW_ROUND: ${{ steps.inputs.outputs.round }}
