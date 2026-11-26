@@ -28,10 +28,12 @@ export const TRIGONOMETRY_DURATION=SCENES[SCENES.length-1]!.from+SCENES[SCENES.l
 const active=(f:number)=>[...SCENES].reverse().find(s=>f>=s.from)??SCENES[0]!;
 const angle=(id:SceneId,f:number,d:number)=>{
  if(id==="hook")return interpolate(f,[0,d-1],[0,TAU*2+THETA],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
- if(id==="sine"||id==="cosine")return THETA*smooth(f,10,d-24);
+ if(id==="sine"||id==="cosine")return THETA*(1-smooth(f,0,24))+THETA*smooth(f,24,d-24);
  if(id==="tangent")return THETA+(Math.PI/2-THETA)*smooth(f,68,d-20);
- if(id==="quadrants")return interpolate(f,[0,d-1],[0,TAU],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
- if(id==="special")return ([Math.PI/6,Math.PI/4,Math.PI/3][Math.min(2,Math.floor(f/42))] ?? THETA);
+ if(id==="quadrants")return interpolate(f,[0,d-1],[Math.PI/2,Math.PI/2+TAU],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
+ if(id==="pythagorean")return Math.PI/2+(THETA-Math.PI/2)*smooth(f,0,24);
+ if(id==="special"){const values=[Math.PI/6,Math.PI/4,Math.PI/3];const slot=Math.min(2,Math.floor(f/42));const target=values[slot]??Math.PI/6;if(slot===0)return THETA+(target-THETA)*smooth(f,0,18);const previous=values[slot-1]??Math.PI/6;return previous+(target-previous)*smooth(f-slot*42,0,12);}
+ if(id==="recap")return Math.PI/3+(THETA-Math.PI/3)*smooth(f,0,24);
  return THETA;
 };
 const tx=(x:number,y:number,s:string,c:string=C.paper,size=T.body,a:"start"|"middle"|"end"="start",w=650)=><text x={x} y={y} fill={c} fontSize={size} fontWeight={w} textAnchor={a} fontFamily="Inter,Arial,sans-serif" style={{fontVariantNumeric:"tabular-nums"}}>{s}</text>;
@@ -52,7 +54,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  const tangentY=cy-r*ta;
  const graphX=1050,graphY=790,graphW=630,graphH=160;
  const graphProgress=(id==="sine"||id==="cosine")?smooth(f,8,d-24):0;
- const graph=Array.from({length:90},(_,i)=>{const a=i/89*Math.max(THETA,th);const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-(v+1)*graphH/2}}).filter((_,i)=>i/89<=graphProgress);
+ const graph=Array.from({length:90},(_,i)=>{const a=i/89*Math.max(THETA,th);const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-v*graphH}}).filter((_,i)=>i/89<=graphProgress);
  const sinSign=sy>=0?"+":"−",cosSign=co>=0?"+":"−",tanSign=ta>=0?"+":"−";
  const specialIndex=Math.min(2,Math.floor(f/42)),special=([Math.PI/6,Math.PI/4,Math.PI/3][specialIndex] ?? Math.PI/6);
  const exact=([["1/2","√3/2"],["√2/2","√2/2"],["√3/2","1/2"]][specialIndex] ?? ["1/2","√3/2"]) as [string,string];
@@ -94,9 +96,9 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
   {tx(1060,425,id==="sine"?`sin 36° = ${fmt(SIN)}`:`cos 36° = ${fmt(COS)}`,C.paper,37)}
   {tx(1060,480,id==="sine"?"The y-coordinate":"The x-coordinate",C.gold,23)}
   {tx(graphX,graphY-graphH-28,id==="sine"?"A sine wave, unrolled":"A cosine wave, unrolled",C.paper,20)}
-  {ln(graphX,graphY,graphX+graphW,graphY,"#8193A8",2,.5)}{ln(graphX,graphY-graphH,graphX,graphY+12,"#8193A8",2,.5)}
+  {ln(graphX,graphY,graphX+graphW,graphY,"#8193A8",2,.65)}{ln(graphX,graphY-graphH,graphX,graphY+12,"#8193A8",2,.65)}{tx(graphX,graphY+28,"0",C.paper,15)}{tx(graphX+graphW,graphY+28,"θ = 36°",C.paper,15,"end")}{tx(graphX-18,graphY-graphH,"1",C.paper,15,"end")}
   {poly(graph,id==="sine"?C.cyan:C.coral,6)}
-  <circle cx={graphX+graphW*graphProgress} cy={graphY-((id==="sine"?sy:co)+1)*graphH/2} r="9" fill={id==="sine"?C.cyan:C.coral} stroke={C.paper} strokeWidth="3"/>
+  <circle cx={graphX+graphW*graphProgress} cy={graphY-(id==="sine"?sy:co)*graphH} r="9" fill={id==="sine"?C.cyan:C.coral} stroke={C.paper} strokeWidth="3"/>
  </g>}
  {/* True tangent line x=1 and radius extension */}
  {id==="tangent"&&<g>
@@ -117,21 +119,25 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  </g>}
  {/* Leg-square areas add to the unit square */}
  {id==="pythagorean"&&<g>
-  <rect x="1030" y="285" width="680" height="430" rx="24" fill="#17283C" stroke="#3D566E"/>
-  {tx(1080,345,"AREA ADDS TO ONE",C.gold,18)}
-  <rect x="1090" y="390" width={220*square} height={220*square} fill={C.coral} fillOpacity=".28" stroke={C.coral} strokeWidth="3"/>
-  <rect x="1335" y="390" width={220*square} height={220*square} fill={C.cyan} fillOpacity=".28" stroke={C.cyan} strokeWidth="3"/>
-  {tx(1200,645,`cos² = ${fmt(COS*COS)}`,C.coral,21,"middle")}{tx(1445,645,`sin² = ${fmt(SIN*SIN)}`,C.cyan,21,"middle")}
-  {tx(1080,695,`${fmt(COS*COS)} + ${fmt(SIN*SIN)} = 1`,C.paper,25)}
+  <rect x="1010" y="285" width="720" height="430" rx="24" fill="#17283C" stroke="#3D566E"/>
+  {tx(1050,345,"SQUARE AREAS · SAME SCALE",C.gold,18)}
+  <rect x="1060" y={430+(r*.55-r*COS*.55)} width={r*COS*.55} height={r*COS*.55} fill={C.coral} fillOpacity=".24" stroke={C.coral} strokeWidth="3"/>
+  <rect x="1245" y={430+(r*.55-r*SIN*.55)} width={r*SIN*.55} height={r*SIN*.55} fill={C.cyan} fillOpacity=".24" stroke={C.cyan} strokeWidth="3"/>
+  <rect x="1440" y="430" width={r*.55} height={r*.55} fill="none" stroke={C.gold} strokeWidth="3" strokeDasharray="8 6"/>
+  {tx(1120,625,`cos² = ${fmt(COS*COS)}`,C.coral,18,"middle")}{tx(1310,625,`sin² = ${fmt(SIN*SIN)}`,C.cyan,18,"middle")}{tx(1520,625,"1",C.gold,20,"middle")}
+  {tx(1050,685,`${fmt(COS*COS)} + ${fmt(SIN*SIN)} = 1`,C.paper,25)}
  </g>}
  {/* Exact special-angle values */}
  {id==="special"&&<g>
-  <rect x="1030" y="300" width="680" height="390" rx="24" fill="#17283C" stroke="#3D566E"/>
-  {tx(1080,360,`${[30,45,60][specialIndex]}°`,C.gold,38)}
-  {tx(1080,440,`sin = ${exact[0]} ≈ ${fmt(Math.sin(special))}`,C.cyan,27)}
-  {tx(1080,510,`cos = ${exact[1]} ≈ ${fmt(Math.cos(special))}`,C.coral,27)}
-  {tx(1080,590,`tan ≈ ${fmt(Math.tan(special))}`,C.paper,27)}
-  {[30,45,60].map((v,i)=><g key={v}><circle cx={1090+i*190} cy="650" r="11" fill={i===specialIndex?C.gold:"#66788B"}/>{tx(1120+i*190,658,`${v}°`,i===specialIndex?C.gold:C.paper,18)}</g>)}
+  <rect x="1010" y="285" width="720" height="430" rx="24" fill="#17283C" stroke="#3D566E"/>
+  {tx(1050,345,"SPECIAL ANGLES · EXACT AND DECIMAL",C.gold,18)}
+  {([30,45,60] as const).map((deg,i)=>{const a=[Math.PI/6,Math.PI/4,Math.PI/3][i]??0;const exactRows=[["1/2","√3/2","√3/3"],["√2/2","√2/2","1"],["√3/2","1/2","√3"]][i]??["1/2","√3/2","√3/3"];const active=i===specialIndex;return <g key={deg}>
+    <rect x={1040+i*225} y="375" width="205" height="275" rx="16" fill={active?"#263D55":"#1B2C41"} stroke={active?C.gold:"#52677D"} strokeWidth={active?3:1}/>
+    {tx(1142+i*225,420,`${deg}°`,active?C.gold:C.paper,28,"middle")}
+    {tx(1060+i*225,478,`sin ${exactRows[0]}`,C.cyan,17)}{tx(1060+i*225,505,`≈ ${fmt(Math.sin(a))}`,C.paper,16)}
+    {tx(1060+i*225,550,`cos ${exactRows[1]}`,C.coral,17)}{tx(1060+i*225,577,`≈ ${fmt(Math.cos(a))}`,C.paper,16)}
+    {tx(1060+i*225,620,`tan ${exactRows[2]}`,C.gold,17)}
+  </g>})}
  </g>}
  {/* Final formula recap */}
  {id==="recap"&&<g>
@@ -153,7 +159,7 @@ const SceneTitle:React.FC<{scene:typeof SCENES[number]}>=({scene})=>{
  const f=useCurrentFrame(),{fps}=useVideoConfig();
  const s=spring({frame:f,fps,config:{damping:18,stiffness:110,mass:.8}});
  const y=interpolate(s,[0,1],[26,0]);
- return <div style={{position:"absolute",left:96,top:68,maxWidth:1450,opacity:ease(f,0,12),transform:`translateY(${y}px)`}}>
+ return <div style={{position:"absolute",left:96,top:68,maxWidth:1450,opacity:1,transform:`translateY(${y}px)`}}>
   <div style={{fontSize:T.eyebrow,color:C.cyan,fontWeight:800,letterSpacing:5}}>{scene.tag}</div>
   <div style={{fontSize:T.title,color:C.paper,fontWeight:800,letterSpacing:-2,marginTop:12}}>{scene.title}</div>
   <div style={{fontSize:T.subtitle,color:"#B8C5D3",marginTop:10}}>{scene.subtitle}</div>
@@ -165,11 +171,12 @@ export const TrigonometryCircle:React.FC=()=>{
  const s=active(f),local=f-s.from;
  const progress=interpolate(f,[0,durationInFrames],[0,100],clamp);
  const seconds=durationInFrames/fps;
- const cam=spring({frame:local,fps,config:{damping:22,stiffness:42,mass:1.2}});
- const scale=interpolate(cam,[0,1],[1.015,1]);
+ const cam=spring({frame:f,fps,config:{damping:22,stiffness:42,mass:1.2}});
+ const scale=interpolate(cam,[0,1],[1.02,1]);
+ const panX=interpolate(cam,[0,1],[10,0]);
  return <AbsoluteFill style={{background:C.ink,fontFamily:"Inter,Arial,sans-serif",overflow:"hidden"}}>
   <Backdrop f={f}/>
-  <div style={{position:"absolute",inset:0,transform:`scale(${scale})`,transformOrigin:"50% 50%"}}><Diagram f={f} id={s.id} d={s.duration}/></div>
+  <div style={{position:"absolute",inset:0,transform:`translateX(${panX}px) scale(${scale})`,transformOrigin:"50% 50%"}}><Diagram f={f} id={s.id} d={s.duration}/></div>
   {SCENES.map(scene=><Sequence key={scene.id} from={scene.from} durationInFrames={scene.duration} name={scene.id}><SceneTitle scene={scene}/></Sequence>)}
   <div style={{position:"absolute",left:96,right:96,bottom:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
    <div style={{fontSize:14,color:"#AAB8C8",letterSpacing:3,fontWeight:800}}>TRIGONOMETRY / UNIT CIRCLE</div>
