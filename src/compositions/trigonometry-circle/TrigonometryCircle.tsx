@@ -26,7 +26,7 @@ const Backdrop:React.FC<{frame:number}> = ({frame})=>{
 };
 
 const Header:React.FC<{kicker:string;title:string;sub:string;frame:number}> = ({kicker,title,sub,frame})=>{
-  const op=ease(frame,0,14);
+  const op=interpolate(frame,[0,4],[1,1],{...clamp});
   return <div style={{position:"absolute",left:116,top:78,opacity:op}}>
     <div style={{color:C.cyan,fontSize:17,letterSpacing:5,fontWeight:800}}>{kicker.toUpperCase()}</div>
     <div style={{color:C.paper,fontSize:58,fontWeight:800,letterSpacing:-2,marginTop:14}}>{title}</div>
@@ -36,10 +36,10 @@ const Header:React.FC<{kicker:string;title:string;sub:string;frame:number}> = ({
 
 const CircleDiagram:React.FC<{frame:number;mode:"orbit"|"triangle"|"sine"|"cosine"|"tangent"}> = ({frame,mode})=>{
   const cx=1040,cy=595,r=330;
-  const local = mode==="orbit" ? frame : frame+0;
-  const theta = mode==="orbit" ? -Math.PI/5 + frame*.027 : -Math.PI/5;
+  
+  const theta = mode==="orbit" ? Math.PI/5 + frame*.027 : Math.PI/5;
   const p=polar(cx,cy,r,theta);
-  const progress = mode==="orbit" ? 1 : ease(frame,4,24);
+
   const showTriangle = mode!=="orbit" && mode!=="tangent";
   const sinOn = mode==="sine";
   const cosOn = mode==="cosine";
@@ -74,9 +74,9 @@ const CircleDiagram:React.FC<{frame:number;mode:"orbit"|"triangle"|"sine"|"cosin
       {line(p.x,p.y,p.x,cy,sinOn?C.cyan:"#7E8FA4",sinOn?11:7,.95)}
       {line(p.x,cy,cx,cy,cosOn?C.coral:"#7E8FA4",cosOn?11:7,.95)}
       <path d={`M ${p.x-22} ${cy} L ${p.x-22} ${cy-22} L ${p.x} ${cy-22}`} fill="none" stroke={C.paper} strokeOpacity=".65" strokeWidth="2"/>
-      {label(p.x+30,(p.y+cy)/2,"sin θ",C.cyan,25,"start")}
-      {label((cx+p.x)/2,cy+42,"cos θ",C.coral,25)}
-      {label(cx+(p.x-cx)*.48-20,cy+(p.y-cy)*.48-22,"1",C.gold,23)}
+      {label(p.x+32,(p.y+cy)/2,"y = sin θ",C.cyan,24,"start")}
+      {label((cx+p.x)/2,cy+42,"x = cos θ",C.coral,24)}
+      {label(cx+(p.x-cx)*.48-20,cy+(p.y-cy)*.48-22,"r = 1",C.gold,23)}
       <circle cx={p.x} cy={cy} r="6" fill={C.paper}/>
     </>}
     {tanOn && <>
@@ -103,9 +103,9 @@ const CircleDiagram:React.FC<{frame:number;mode:"orbit"|"triangle"|"sine"|"cosin
 
 const EquationPanel:React.FC<{frame:number;mode:string}> = ({frame,mode})=>{
   const content = mode==="sine"
-    ? ["SINE","sin(θ) = opposite / hypotenuse","sin(θ) = y / 1 = y","The point’s vertical coordinate"]
+    ? ["SINE","sin(θ) = opposite / hypotenuse","sin(θ) = y / 1 = y","On a unit circle, this height is exactly sin(θ)."]
     : mode==="cosine"
-    ? ["COSINE","cos(θ) = adjacent / hypotenuse","cos(θ) = x / 1 = x","The point’s horizontal coordinate"]
+    ? ["COSINE","cos(θ) = adjacent / hypotenuse","cos(θ) = x / 1 = x","On a unit circle, this width is exactly cos(θ)."]
     : mode==="tangent"
     ? ["TANGENT","tan(θ) = opposite / adjacent","tan(θ) = y / x = sin(θ) / cos(θ)","Undefined when x = 0 (cos θ = 0)"]
     : ["THE RIGHT TRIANGLE","Hypotenuse = radius = 1","Opposite = vertical leg (y)","Adjacent = horizontal leg (x)"];
@@ -142,9 +142,9 @@ export const TrigonometryCircle:React.FC=()=>{
     <div style={{position:"absolute",inset:0,boxShadow:`inset 0 0 180px rgba(0,0,0,${vignette})`,pointerEvents:"none"}}/>
     <Scene start={0} end={120} mode="orbit" tag="THE BIG IDEA" title="Trigonometry" sub="One circle. Three powerful functions."/>
     <Scene start={108} end={240} mode="triangle" tag="START WITH A CIRCLE" title="Meet the triangle" sub="A radius of 1 creates a right triangle."/>
-    <Scene start={228} end={360} mode="sine" tag="THE VERTICAL SIDE" title="Sine measures height" sub="Follow the point straight down to the x-axis."/>
+    <Scene start={228} end={360} mode="sine" tag="THE VERTICAL SIDE" title="Sine measures height" sub="Drop a vertical line from the point to the x-axis."/>
     <Scene start={348} end={480} mode="cosine" tag="THE HORIZONTAL SIDE" title="Cosine measures width" sub="Read the point’s horizontal coordinate."/>
-    <Scene start={468} end={600} mode="tangent" tag="PUT THEM TOGETHER" title="Tangent is the ratio" sub="Compare vertical height with horizontal width."/>
+    <Scene start={468} end={600} mode="tangent" tag="PUT THEM TOGETHER" title="Tangent is the ratio" sub="Tangent compares the vertical and horizontal legs."/>
     <div style={{position:"absolute",bottom:42,left:116,right:116,display:"flex",justifyContent:"space-between",alignItems:"center",opacity:.82}}>
       <div style={{color:"#B8C5D3",fontSize:15,letterSpacing:3,fontWeight:700}}>TRIGONOMETRY / UNIT CIRCLE</div>
       <div style={{height:3,width:330,background:"rgba(246,242,233,.18)",borderRadius:5,overflow:"hidden"}}><div style={{height:"100%",width:`${(frame/600)*100}%`,background:C.cyan}}/></div>
