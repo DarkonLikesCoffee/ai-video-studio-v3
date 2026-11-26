@@ -1,0 +1,1 @@
+Round 4 render trigger; final artifact remains a GitHub Actions artifact.
