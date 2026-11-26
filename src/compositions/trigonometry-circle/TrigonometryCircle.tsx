@@ -1,154 +1,180 @@
 import React from "react";
-import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from "remotion";
+import {AbsoluteFill, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig} from "remotion";
 
-const C = {ink:"#101A2B",paper:"#F6F2E9",cyan:"#48C7D4",coral:"#FF796C",gold:"#F2C66D"};
-const TAU = Math.PI * 2;
-const clamp = {extrapolateLeft:"clamp" as const, extrapolateRight:"clamp" as const};
-const ease = (f:number,a:number,b:number)=>interpolate(f,[a,b],[0,1],{...clamp});
-const polar = (cx:number,cy:number,r:number,a:number)=>({x:cx+r*Math.cos(a),y:cy-r*Math.sin(a)});
-const line = (x1:number,y1:number,x2:number,y2:number,color:string,width=5,opacity=1)=> <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={width} strokeLinecap="round" opacity={opacity}/>;
-const label = (x:number,y:number,txt:string,color:string,size=25,anchor:"start"|"middle"|"end"="middle")=><text x={x} y={y} fill={color} fontSize={size} fontWeight={650} textAnchor={anchor} fontFamily="Inter,Arial,sans-serif">{txt}</text>;
+export const FPS=30;
+export const C={ink:"#101A2B",paper:"#F6F2E9",cyan:"#48C7D4",coral:"#FF796C",gold:"#F2C66D"} as const;
+const T={eyebrow:16,title:54,subtitle:22,body:24,number:29};
+const clamp={extrapolateLeft:"clamp" as const,extrapolateRight:"clamp" as const};
+const ease=(f:number,a:number,b:number)=>interpolate(f,[a,b],[0,1],clamp);
+const smooth=(f:number,a:number,b:number)=>{const t=ease(f,a,b);return t*t*(3-2*t)};
+const TAU=Math.PI*2, THETA=Math.PI/5;
+const SIN=Math.sin(THETA),COS=Math.cos(THETA),TAN=Math.tan(THETA);
+const fmt=(n:number)=>n.toFixed(3);
+const polar=(cx:number,cy:number,r:number,a:number)=>({x:cx+r*Math.cos(a),y:cy-r*Math.sin(a)});
+export type SceneId="hook"|"radians"|"triangle"|"sine"|"cosine"|"tangent"|"quadrants"|"pythagorean"|"special"|"recap";
+export const SCENES:{id:SceneId;from:number;duration:number;title:string;subtitle:string;tag:string}[]=[
+{id:"hook",from:0,duration:150,title:"Trigonometry",subtitle:"One circle connects angles, coordinates and three functions.",tag:"01 / THE UNIT CIRCLE"},
+{id:"radians",from:150,duration:120,title:"An angle measures an arc",subtitle:"On a unit circle, radians and arc length are the same number.",tag:"02 / RADIANS"},
+{id:"triangle",from:270,duration:120,title:"Build a right triangle",subtitle:"The radius is the hypotenuse — and its length is exactly 1.",tag:"03 / THE TRIANGLE"},
+{id:"sine",from:390,duration:150,title:"Sine is the vertical coordinate",subtitle:"As the point rises, its y-coordinate becomes sin θ.",tag:"04 / SINE"},
+{id:"cosine",from:540,duration:150,title:"Cosine is the horizontal coordinate",subtitle:"As the point moves sideways, its x-coordinate becomes cos θ.",tag:"05 / COSINE"},
+{id:"tangent",from:690,duration:180,title:"Tangent is a length on a tangent",subtitle:"Extend the radius to x = 1: that vertical segment is tan θ.",tag:"06 / TANGENT"},
+{id:"quadrants",from:870,duration:150,title:"The signs change by quadrant",subtitle:"The point tells you the signs of sine, cosine and tangent.",tag:"07 / SIGNS"},
+{id:"pythagorean",from:1020,duration:150,title:"The Pythagorean identity",subtitle:"The two leg-squares always add up to the unit square.",tag:"08 / WHY IT WORKS"},
+{id:"special",from:1170,duration:150,title:"Three angles worth knowing",subtitle:"Some angles have exact values you can recognize instantly.",tag:"09 / SPECIAL ANGLES"},
+{id:"recap",from:1320,duration:120,title:"Three functions. One point.",subtitle:"Read the coordinates — and trigonometry follows.",tag:"10 / RECAP"}
+];
+export const TRIGONOMETRY_DURATION=SCENES[SCENES.length-1].from+SCENES[SCENES.length-1].duration;
+const active=(f:number)=>[...SCENES].reverse().find(s=>f>=s.from)??SCENES[0];
+const angle=(id:SceneId,f:number,d:number)=>{
+ if(id==="hook")return interpolate(f,[0,d-1],[0,TAU*2+THETA],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
+ if(id==="sine"||id==="cosine")return THETA*smooth(f,10,d-24);
+ if(id==="tangent")return THETA+(Math.PI/2-THETA)*smooth(f,68,d-20);
+ if(id==="quadrants")return interpolate(f,[0,d-1],[0,TAU],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
+ if(id==="special")return [Math.PI/6,Math.PI/4,Math.PI/3][Math.min(2,Math.floor(f/42))];
+ return THETA;
+};
+const tx=(x:number,y:number,s:string,c=C.paper,size=T.body,a:"start"|"middle"|"end"="start",w=650)=><text x={x} y={y} fill={c} fontSize={size} fontWeight={w} textAnchor={a} fontFamily="Inter,Arial,sans-serif" fontVariantNumeric="tabular-nums">{s}</text>;
+const ln=(x1:number,y1:number,x2:number,y2:number,c:string,w=4,o=1,dash?:string)=><line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={w} strokeLinecap="round" opacity={o} strokeDasharray={dash}/>;
+const poly=(pts:{x:number;y:number}[],c:string,w=5)=><polyline points={pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round"/>;
 
-const Backdrop:React.FC<{frame:number}> = ({frame})=>{
-  const drift = (frame*.18)%100;
-  return <svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
-    <defs>
-      <radialGradient id="glow"><stop offset="0%" stopColor="#263d59"/><stop offset="100%" stopColor={C.ink}/></radialGradient>
-      <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M 80 0 L 0 0 0 80" fill="none" stroke="#91a6bd" strokeOpacity=".10" strokeWidth="1"/></pattern>
-      <filter id="blur"><feGaussianBlur stdDeviation="54"/></filter>
-    </defs>
-    <rect width="1920" height="1080" fill="url(#glow)"/>
-    <circle cx={360+drift*2} cy={210} r="180" fill={C.cyan} opacity=".07" filter="url(#blur)"/>
-    <circle cx={1490-drift} cy={840} r="250" fill={C.coral} opacity=".06" filter="url(#blur)"/>
-    <rect width="1920" height="1080" fill="url(#grid)"/>
-    {Array.from({length:34},(_,i)=><circle key={i} cx={(i*191+frame*(.22+i%3*.08))%2000} cy={(i*83+Math.sin(frame*.012+i)*22+1080)%1080} r={i%4===0?3:1.5} fill={i%3===0?C.cyan:C.paper} opacity=".24"/>)}
-  </svg>;
+const Backdrop:React.FC<{f:number}>=({f})=><svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
+<defs><radialGradient id="trig-bg"><stop offset="0%" stopColor="#263d59"/><stop offset="100%" stopColor={C.ink}/></radialGradient><pattern id="trig-grid" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M80 0H0V80" fill="none" stroke={C.paper} strokeOpacity=".055"/></pattern></defs>
+<rect width="1920" height="1080" fill="url(#trig-bg)"/><rect width="1920" height="1080" fill="url(#trig-grid)"/>
+{Array.from({length:30},(_,i)=><circle key={i} cx={(i*193+f*(.16+i%3*.07))%1920} cy={(i*89+Math.sin(f*.012+i)*20+1080)%1080} r={i%5===0?3:1.5} fill={i%2?C.cyan:C.paper} opacity=".2"/>)}</svg>;
+
+const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
+ const cx=500,cy=590,r=260,th=angle(id,f,d),p=polar(cx,cy,r,th);
+ const tri=["triangle","sine","cosine","pythagorean","recap"].includes(id);
+ const quad=((Math.floor((((th%TAU)+TAU)%TAU)/(Math.PI/2))%4)+1);
+ const sy=Math.sin(th),co=Math.cos(th),ta=Math.tan(th);
+ const undefinedTan=id==="tangent"&&Math.abs(Math.cos(th))<.035;
+ const tangentY=cy-r*ta;
+ const graphX=1050,graphY=790,graphW=630,graphH=160;
+ const graphProgress=(id==="sine"||id==="cosine")?smooth(f,8,d-24):0;
+ const graph=Array.from({length:90},(_,i)=>{const a=i/89*Math.max(THETA,th);const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-(v+1)*graphH/2}}).filter((_,i)=>i/89<=graphProgress);
+ const sinSign=sy>=0?"+":"−",cosSign=co>=0?"+":"−",tanSign=ta>=0?"+":"−";
+ const specialIndex=Math.min(2,Math.floor(f/42)),special=[Math.PI/6,Math.PI/4,Math.PI/3][specialIndex];
+ const exact=[["1/2","√3/2"],["√2/2","√2/2"],["√3/2","1/2"]][specialIndex];
+ const square=smooth(f,28,92);
+ return <svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
+ <defs><linearGradient id="trig-radius"><stop stopColor={C.gold}/><stop offset="1" stopColor={C.coral}/></linearGradient><filter id="trig-shadow"><feGaussianBlur stdDeviation="8"/></filter></defs>
+ {/* Persistent circle, axes, radius and moving point */}
+ <circle cx={cx} cy={cy} r={r+34} fill="none" stroke={C.cyan} strokeOpacity=".12" strokeWidth="2" strokeDasharray="3 14" transform={`rotate(${f*.035} ${cx} ${cy})`}/>
+ <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.paper} strokeOpacity=".65" strokeWidth="4"/>
+ {ln(cx-r-90,cy,cx+r+100,cy,"#91A4B9",2,.7)}{ln(cx,cy-r-90,cx,cy+r+90,"#91A4B9",2,.7)}
+ {tx(cx+r+110,cy+8,"x",C.paper,21)}{tx(cx+12,cy-r-100,"y",C.paper,21)}{tx(cx-18,cy+34,"O",C.paper,20,"end")}
+ {ln(cx+r,cy-10,cx+r,cy+10,C.gold,3)}{tx(cx+r,cy+42,"1",C.gold,19,"middle")}
+ {ln(cx-10,cy-r,cx+10,cy-r,C.gold,3)}{tx(cx-26,cy-r-12,"1",C.gold,19,"end")}
+ {ln(cx,cy,p.x,p.y,"url(#trig-radius)",9)}
+ <circle cx={p.x} cy={p.y} r="18" fill="#000" opacity=".2" filter="url(#trig-shadow)"/><circle cx={p.x} cy={p.y} r="13" fill={id==="quadrants"?[C.cyan,C.gold,C.coral,C.paper][quad-1]:C.coral} stroke={C.paper} strokeWidth="4"/>
+ {tx(p.x+22,p.y-20,`(${fmt(co)}, ${fmt(sy)})`,C.paper,19)}
+ <path d={`M ${cx+66} ${cy} A 66 66 0 0 0 ${cx+66*Math.cos(th)} ${cy-66*Math.sin(th)}`} fill="none" stroke={C.gold} strokeWidth="5" strokeLinecap="round"/>
+ {tx(cx+96,cy-40,id==="special"?`${[30,45,60][specialIndex]}°`:"θ",C.gold,24)}
+ {/* Radian arc unrolled alongside the circle */}
+ {id==="radians"&&<g>
+  <path d={`M ${cx+r} ${cy} A ${r} ${r} 0 0 0 ${p.x} ${p.y}`} fill="none" stroke={C.cyan} strokeWidth="9"/>
+  {ln(880,380,880+r*THETA,380,C.cyan,9)}{ln(880,365,880,395,C.paper,2)}{ln(880+r*THETA,365,880+r*THETA,395,C.paper,2)}
+  {tx(880,340,"unrolled arc",C.cyan,18)}{tx(880+r*THETA/2,425,"s = rθ = 0.628",C.paper,22,"middle")}
+  {ln(880,480,880+r,480,C.gold,5)}{tx(880+r/2,520,"1 rad = 1 unit of arc",C.gold,20,"middle")}
+ </g>}
+ {/* Triangle legs build in sequence */}
+ {tri&&<g>
+  {ln(p.x,p.y,p.x,cy,C.cyan,8,id==="triangle"?smooth(f,34,62):1)}
+  {ln(p.x,cy,cx,cy,C.coral,8,id==="triangle"?smooth(f,58,86):1)}
+  <path d={`M ${p.x-22} ${cy} L ${p.x-22} ${cy-22} L ${p.x} ${cy-22}`} fill="none" stroke={C.paper} strokeWidth="3"/>
+  {tx(p.x+24,(p.y+cy)/2,`y = ${fmt(sy)}`,C.cyan,19)}{tx((cx+p.x)/2,cy+42,`x = ${fmt(co)}`,C.coral,19,"middle")}
+  {tx(cx+(p.x-cx)*.48-20,cy+(p.y-cy)*.48-22,"r = 1",C.gold,20,"middle")}
+ </g>}
+ {/* Sine/cosine projections and their live unrolled graphs */}
+ {(id==="sine"||id==="cosine")&&<g>
+  {ln(p.x,p.y,p.x,cy,C.cyan,9)}{ln(p.x,p.y,cx,p.y,C.cyan,2,.65,"7 9")}{ln(cx,cy,p.x,cy,C.coral,9)}
+  <rect x="1010" y="290" width="700" height="360" rx="26" fill="#17283C" stroke="#3D566E"/>
+  {tx(1060,350,id==="sine"?"SINE / LIVE HEIGHT":"COSINE / LIVE WIDTH",C.cyan,18)}
+  {tx(1060,425,id==="sine"?`sin 36° = ${fmt(SIN)}`:`cos 36° = ${fmt(COS)}`,C.paper,37)}
+  {tx(1060,480,id==="sine"?"The y-coordinate":"The x-coordinate",C.gold,23)}
+  {tx(graphX,graphY-graphH-28,id==="sine"?"A sine wave, unrolled":"A cosine wave, unrolled",C.paper,20)}
+  {ln(graphX,graphY,graphX+graphW,graphY,"#8193A8",2,.5)}{ln(graphX,graphY-graphH,graphX,graphY+12,"#8193A8",2,.5)}
+  {poly(graph,id==="sine"?C.cyan:C.coral,6)}
+  <circle cx={graphX+graphW*graphProgress} cy={graphY-((id==="sine"?sy:co)+1)*graphH/2} r="9" fill={id==="sine"?C.cyan:C.coral} stroke={C.paper} strokeWidth="3"/>
+ </g>}
+ {/* True tangent line x=1 and radius extension */}
+ {id==="tangent"&&<g>
+  {ln(cx+r,cy-250,cx+r,cy+250,C.gold,4,1,"8 8")}{tx(cx+r+22,cy-260,"x = 1",C.gold,19)}
+  {ln(cx,cy,cx+r,tangentY,C.coral,7)}
+  {!undefinedTan&&ln(cx+r,cy,cx+r,tangentY,C.cyan,11)}
+  {tx(cx+r+22,Math.max(230,Math.min(890,(cy+tangentY)/2)),undefinedTan?"undefined (cos θ = 0)":`tan θ = ${fmt(ta)}`,C.cyan,20)}
+  {tx(1050,355,"TANGENT LENGTH",C.gold,18)}{tx(1050,415,undefinedTan?"undefined":fmt(ta),C.paper,40)}
+  {tx(1050,470,"tan θ = sin θ / cos θ",C.paper,24)}
+ </g>}
+ {/* Quadrant sign readout and ASTC memory chip */}
+ {id==="quadrants"&&<g>
+  <rect x="1030" y="300" width="680" height="390" rx="24" fill="#17283C" stroke="#3D566E"/>
+  {tx(1080,360,`QUADRANT ${quad}`,C.gold,20)}
+  {tx(1080,430,`sin θ   ${sinSign}`,C.cyan,28)}{tx(1300,430,`cos θ   ${cosSign}`,C.coral,28)}{tx(1520,430,`tan θ   ${tanSign}`,C.gold,28)}
+  {["I: ALL +","II: SIN +","III: TAN +","IV: COS +"].map((s,i)=><g key={s}><rect x={1065+i*158} y="505" width="145" height="82" rx="14" fill={quad===i+1?"#34465A":"#1D3046"} stroke={quad===i+1?C.gold:"#52677D"} strokeWidth={quad===i+1?3:1}/>{tx(1137+i*158,554,s,C.paper,15,"middle")}</g>)}
+  {tx(1080,645,"ASTC · All · Sine · Tangent · Cosine",C.paper,20)}
+ </g>}
+ {/* Leg-square areas add to the unit square */}
+ {id==="pythagorean"&&<g>
+  <rect x="1030" y="285" width="680" height="430" rx="24" fill="#17283C" stroke="#3D566E"/>
+  {tx(1080,345,"AREA ADDS TO ONE",C.gold,18)}
+  <rect x="1090" y="390" width={220*square} height={220*square} fill={C.coral} fillOpacity=".28" stroke={C.coral} strokeWidth="3"/>
+  <rect x="1335" y="390" width={220*square} height={220*square} fill={C.cyan} fillOpacity=".28" stroke={C.cyan} strokeWidth="3"/>
+  {tx(1200,645,`cos² = ${fmt(COS*COS)}`,C.coral,21,"middle")}{tx(1445,645,`sin² = ${fmt(SIN*SIN)}`,C.cyan,21,"middle")}
+  {tx(1080,695,`${fmt(COS*COS)} + ${fmt(SIN*SIN)} = 1`,C.paper,25)}
+ </g>}
+ {/* Exact special-angle values */}
+ {id==="special"&&<g>
+  <rect x="1030" y="300" width="680" height="390" rx="24" fill="#17283C" stroke="#3D566E"/>
+  {tx(1080,360,`${[30,45,60][specialIndex]}°`,C.gold,38)}
+  {tx(1080,440,`sin = ${exact[0]} ≈ ${fmt(Math.sin(special))}`,C.cyan,27)}
+  {tx(1080,510,`cos = ${exact[1]} ≈ ${fmt(Math.cos(special))}`,C.coral,27)}
+  {tx(1080,590,`tan ≈ ${fmt(Math.tan(special))}`,C.paper,27)}
+  {[30,45,60].map((v,i)=><g key={v}><circle cx={1090+i*190} cy="650" r="11" fill={i===specialIndex?C.gold:"#66788B"}/>{tx(1120+i*190,658,`${v}°`,i===specialIndex?C.gold:C.paper,18)}</g>)}
+ </g>}
+ {/* Final formula recap */}
+ {id==="recap"&&<g>
+  <rect x="1020" y="300" width="700" height="390" rx="26" fill="#17283C" stroke="#3D566E"/>
+  {tx(1080,380,"sin θ",C.cyan,38)}{tx(1330,380,"= y",C.paper,38)}
+  {tx(1080,475,"cos θ",C.coral,38)}{tx(1330,475,"= x",C.paper,38)}
+  {tx(1080,570,"tan θ",C.gold,38)}{tx(1330,570,"= y / x",C.paper,38)}
+  {tx(1080,650,`At 36°: (${fmt(COS)}, ${fmt(SIN)})`,C.paper,23)}
+ </g>}
+ {/* Numeric readout is always live */}
+ <rect x="90" y="900" width="820" height="82" rx="18" fill="#17283C" stroke="#3D566E"/>
+ {tx(125,950,`θ = ${(th*180/Math.PI).toFixed(1)}°`,C.gold,24)}
+ {tx(390,950,`x = cos θ = ${fmt(co)}`,C.coral,21)}
+ {tx(690,950,`y = sin θ = ${fmt(sy)}`,C.cyan,21)}
+ </svg>;
 };
 
-const Header:React.FC<{kicker:string;title:string;sub:string;frame:number}> = ({kicker,title,sub,frame})=>{
-  const op=interpolate(frame,[0,4],[1,1],{...clamp});
-  return <div style={{position:"absolute",left:116,top:78,opacity:op}}>
-    <div style={{color:C.cyan,fontSize:17,letterSpacing:5,fontWeight:800}}>{kicker.toUpperCase()}</div>
-    <div style={{color:C.paper,fontSize:58,fontWeight:800,letterSpacing:-2,marginTop:14}}>{title}</div>
-    <div style={{color:"#B8C5D3",fontSize:25,marginTop:13}}>{sub}</div>
-  </div>;
-};
-
-const CircleDiagram:React.FC<{frame:number;mode:"orbit"|"triangle"|"sine"|"cosine"|"tangent"}> = ({frame,mode})=>{
-  const cx=1040,cy=595,r=330;
-  
-  const theta = mode==="orbit" ? Math.PI/5 + frame*.027 : Math.PI/5;
-  const p=polar(cx,cy,r,theta);
-
-  const showTriangle = mode!=="orbit" && mode!=="tangent";
-  const sinOn = mode==="sine";
-  const cosOn = mode==="cosine";
-  const tanOn = mode==="tangent";
-  const ringDash = 2*Math.PI*r;
-  const pulse = 1+Math.sin(frame*.12)*.035;
-  return <svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
-    <defs>
-      <filter id="shadow"><feGaussianBlur stdDeviation="12"/></filter>
-      <linearGradient id="radiusGlow"><stop stopColor={C.gold}/><stop offset="1" stopColor={C.coral}/></linearGradient>
-    </defs>
-    {/* Orbiting guide rings and axes */}
-    <circle cx={cx} cy={cy} r={r+42} fill="none" stroke={C.cyan} strokeOpacity=".12" strokeWidth="2" strokeDasharray="4 16" transform={`rotate(${frame*.05} ${cx} ${cy})`}/>
-    <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.paper} strokeOpacity=".54" strokeWidth="4"/>
-    {line(cx-r-100,cy,cx+r+110,cy,"#A9B8C8",2,.55)}
-    {line(cx,cy-r-82,cx,cy+r+85,"#A9B8C8",2,.55)}
-    {label(cx+r+112,cy+9,"x",C.paper,24)}
-    {label(cx+12,cy-r-92,"y",C.paper,24)}
-    <circle cx={cx} cy={cy} r="7" fill={C.paper}/>
-    {label(cx-15,cy+38,"O",C.paper,22,"end")}
-    <circle cx={cx} cy={cy} r={r*.72*pulse} fill="none" stroke={C.cyan} strokeOpacity=".09" strokeWidth="1.5"/>
-    {/* Angle arc */}
-    <path d={`M ${cx+78} ${cy} A 78 78 0 0 0 ${cx+78*Math.cos(theta)} ${cy-78*Math.sin(theta)}`} fill="none" stroke={C.gold} strokeWidth="5" strokeLinecap="round"/>
-    {label(cx+112,cy-42,"θ",C.gold,31)}
-    {/* Radius shadow and radius */}
-    <line x1={cx} y1={cy+5} x2={p.x} y2={p.y+5} stroke="#000" strokeWidth="18" opacity=".18" filter="url(#shadow)"/>
-    {line(cx,cy,p.x,p.y,"url(#radiusGlow)",10)}
-    {/* Point */}
-    <circle cx={p.x} cy={p.y} r="17" fill={C.coral} stroke={C.paper} strokeWidth="5"/>
-    {/* Triangle and its legs */}
-    {showTriangle && <>
-      {line(p.x,p.y,p.x,cy,sinOn?C.cyan:"#7E8FA4",sinOn?11:7,.95)}
-      {line(p.x,cy,cx,cy,cosOn?C.coral:"#7E8FA4",cosOn?11:7,.95)}
-      <path d={`M ${p.x-22} ${cy} L ${p.x-22} ${cy-22} L ${p.x} ${cy-22}`} fill="none" stroke={C.paper} strokeOpacity=".65" strokeWidth="2"/>
-      {label(p.x+32,(p.y+cy)/2,"y = sin θ",C.cyan,24,"start")}
-      {label((cx+p.x)/2,cy+42,"x = cos θ",C.coral,24)}
-      {label(cx+(p.x-cx)*.48-20,cy+(p.y-cy)*.48-22,"r = 1",C.gold,23)}
-      <circle cx={p.x} cy={cy} r="6" fill={C.paper}/>
-    </>}
-    {tanOn && <>
-      {line(p.x,p.y,p.x,cy,C.cyan,8)}
-      {line(cx,cy,p.x,cy,C.coral,8)}
-      <path d={`M ${p.x} ${cy} L ${p.x} ${p.y}`} stroke={C.gold} strokeDasharray="7 8" strokeWidth="3" fill="none"/>
-      {label(p.x+34,(p.y+cy)/2,"opposite (y)",C.cyan,22,"start")}
-      {label((cx+p.x)/2,cy+43,"adjacent (x)",C.coral,22)}
-    </>}
-    {mode==="orbit" && <>
-      <path d={`M ${cx+r*Math.cos(-Math.PI/5)} ${cy-r*Math.sin(-Math.PI/5)} A ${r} ${r} 0 1 0 ${p.x} ${p.y}`} fill="none" stroke={C.cyan} strokeWidth="7" strokeDasharray={`${ringDash*.22} ${ringDash}`} strokeLinecap="round" opacity=".9"/>
-      {label(580,760,"A rotating radius creates an angle",C.paper,25)}
-    </>}
-    {/* Axis projection guides */}
-    {showTriangle && line(p.x,p.y,p.x,cy,C.paper,2,.33)}
-    <g opacity=".9">
-      <rect x="1430" y="350" width="330" height="148" rx="20" fill="#1B2C41" stroke="#50657C" strokeOpacity=".5"/>
-      {label(1460,390,"UNIT CIRCLE",C.cyan,16,"start")}
-      {label(1460,444,"r = 1",C.paper,34,"start")}
-      {label(1460,478,"x² + y² = 1",C.paper,23,"start")}
-    </g>
-  </svg>;
-};
-
-const EquationPanel:React.FC<{frame:number;mode:string}> = ({frame,mode})=>{
-  const content = mode==="sine"
-    ? ["SINE","sin(θ) = opposite / hypotenuse","sin(θ) = y / 1 = y","On a unit circle, this height is exactly sin(θ)."]
-    : mode==="cosine"
-    ? ["COSINE","cos(θ) = adjacent / hypotenuse","cos(θ) = x / 1 = x","On a unit circle, this width is exactly cos(θ)."]
-    : mode==="tangent"
-    ? ["TANGENT","tan(θ) = opposite / adjacent","tan(θ) = y / x = sin(θ) / cos(θ)","Undefined when x = 0 (cos θ = 0)"]
-    : ["THE RIGHT TRIANGLE","Hypotenuse = radius = 1","Opposite = vertical leg (y)","Adjacent = horizontal leg (x)"];
-  const op=ease(frame,5,19);
-  return <div style={{position:"absolute",left:118,top:390,width:650,opacity:op}}>
-    <div style={{fontSize:18,color:C.cyan,fontWeight:800,letterSpacing:4}}>{content[0]}</div>
-    <div style={{marginTop:28,display:"grid",gap:19}}>
-      {content.slice(1,3).map((s,i)=><div key={s} style={{padding:"19px 24px",borderRadius:16,background:"rgba(246,242,233,.07)",border:"1px solid rgba(246,242,233,.14)",color:i===1?C.gold:C.paper,fontSize:i===1?29:24,fontWeight:700}}>{s}</div>)}
-    </div>
-    <div style={{marginTop:25,color:"#B8C5D3",fontSize:23,lineHeight:1.45,maxWidth:570}}>{content[3]}</div>
-  </div>;
-};
-
-const Scene:React.FC<{start:number;end:number;title:string;sub:string;mode:"orbit"|"triangle"|"sine"|"cosine"|"tangent";tag:string}> = ({start,end,title,sub,mode,tag})=>{
-  const frame=useCurrentFrame();
-  const f=frame-start;
-  const fadeIn=ease(frame,start,start+18);
-  const fadeOut=1-ease(frame,end-16,end);
-  const opacity=fadeIn*fadeOut;
-  const lift=interpolate(f,[0,22],[28,0],{...clamp});
-  return <AbsoluteFill style={{opacity,transform:`translateY(${lift}px)`}}>
-    <Header kicker={tag} title={title} sub={sub} frame={f}/>
-    <CircleDiagram frame={f} mode={mode}/>
-    {mode!=="orbit" && <EquationPanel frame={f} mode={mode}/>}
-  </AbsoluteFill>;
+const SceneTitle:React.FC<{scene:typeof SCENES[number]}>=({scene})=>{
+ const f=useCurrentFrame(),{fps}=useVideoConfig();
+ const s=spring({frame:f,fps,config:{damping:18,stiffness:110,mass:.8}});
+ const y=interpolate(s,[0,1],[26,0]);
+ return <div style={{position:"absolute",left:96,top:68,maxWidth:1450,opacity:ease(f,0,12),transform:`translateY(${y}px)`}}>
+  <div style={{fontSize:T.eyebrow,color:C.cyan,fontWeight:800,letterSpacing:5}}>{scene.tag}</div>
+  <div style={{fontSize:T.title,color:C.paper,fontWeight:800,letterSpacing:-2,marginTop:12}}>{scene.title}</div>
+  <div style={{fontSize:T.subtitle,color:"#B8C5D3",marginTop:10}}>{scene.subtitle}</div>
+ </div>;
 };
 
 export const TrigonometryCircle:React.FC=()=>{
-  const frame=useCurrentFrame();
-  const {durationInFrames}=useVideoConfig();
-  const vignette=interpolate(frame,[0,durationInFrames],[.16,.32],clamp);
-  return <AbsoluteFill style={{background:C.ink,fontFamily:"Inter,Arial,sans-serif",overflow:"hidden"}}>
-    <Backdrop frame={frame}/>
-    <div style={{position:"absolute",inset:0,boxShadow:`inset 0 0 180px rgba(0,0,0,${vignette})`,pointerEvents:"none"}}/>
-    <Scene start={0} end={120} mode="orbit" tag="THE BIG IDEA" title="Trigonometry" sub="One circle. Three powerful functions."/>
-    <Scene start={108} end={240} mode="triangle" tag="START WITH A CIRCLE" title="Meet the triangle" sub="A radius of 1 creates a right triangle."/>
-    <Scene start={228} end={360} mode="sine" tag="THE VERTICAL SIDE" title="Sine measures height" sub="Drop a vertical line from the point to the x-axis."/>
-    <Scene start={348} end={480} mode="cosine" tag="THE HORIZONTAL SIDE" title="Cosine measures width" sub="Read the point’s horizontal coordinate."/>
-    <Scene start={468} end={600} mode="tangent" tag="PUT THEM TOGETHER" title="Tangent is the ratio" sub="Tangent compares the vertical and horizontal legs."/>
-    <div style={{position:"absolute",bottom:42,left:116,right:116,display:"flex",justifyContent:"space-between",alignItems:"center",opacity:.82}}>
-      <div style={{color:"#B8C5D3",fontSize:15,letterSpacing:3,fontWeight:700}}>TRIGONOMETRY / UNIT CIRCLE</div>
-      <div style={{height:3,width:330,background:"rgba(246,242,233,.18)",borderRadius:5,overflow:"hidden"}}><div style={{height:"100%",width:`${(frame/600)*100}%`,background:C.cyan}}/></div>
-      <div style={{color:C.paper,fontSize:16,fontVariantNumeric:"tabular-nums"}}>{String(Math.floor(frame/30)).padStart(2,"0")} / 20 SEC</div>
-    </div>
-  </AbsoluteFill>;
+ const f=useCurrentFrame(),{durationInFrames,fps}=useVideoConfig();
+ const s=active(f),local=f-s.from;
+ const progress=interpolate(f,[0,durationInFrames],[0,100],clamp);
+ const seconds=durationInFrames/fps;
+ const cam=spring({frame:local,fps,config:{damping:22,stiffness:42,mass:1.2}});
+ const scale=interpolate(cam,[0,1],[1.015,1]);
+ return <AbsoluteFill style={{background:C.ink,fontFamily:"Inter,Arial,sans-serif",overflow:"hidden"}}>
+  <Backdrop f={f}/>
+  <div style={{position:"absolute",inset:0,transform:`scale(${scale})`,transformOrigin:"50% 50%"}}><Diagram f={f} id={s.id} d={s.duration}/></div>
+  {SCENES.map(scene=><Sequence key={scene.id} from={scene.from} durationInFrames={scene.duration} name={scene.id}><SceneTitle scene={scene}/></Sequence>)}
+  <div style={{position:"absolute",left:96,right:96,bottom:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+   <div style={{fontSize:14,color:"#AAB8C8",letterSpacing:3,fontWeight:800}}>TRIGONOMETRY / UNIT CIRCLE</div>
+   <div style={{width:340,height:4,background:"rgba(246,242,233,.18)",borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${progress}%`,background:C.cyan}}/></div>
+   <div style={{fontSize:16,color:C.paper,fontVariantNumeric:"tabular-nums"}}>{(f/fps).toFixed(1)} / {seconds.toFixed(1)} SEC</div>
+  </div>
+ </AbsoluteFill>;
 };

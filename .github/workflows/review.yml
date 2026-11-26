@@ -43,6 +43,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Typecheck before rendering
+        run: npx tsc --noEmit
       - name: Render selected still frames (swangle)
         env:
           REVIEW_ROUND: ${{ steps.inputs.outputs.round }}
