@@ -19,6 +19,27 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python for optional Kokoro narration
+        if: hashFiles('production/narration.json') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cache Kokoro model files
+        if: hashFiles('production/narration.json') != ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ai-video-studio/kokoro-v1.0
+          key: kokoro-onnx-0.6.1-model-files-v1.1-${{ runner.os }}
+      - name: Install optional Kokoro dependencies
+        if: hashFiles('production/narration.json') != ''
+        run: python -m pip install --disable-pip-version-check -r requirements-tts.txt
+      - name: Generate narration and word timings
+        if: hashFiles('production/narration.json') != ''
+        run: |
+          python scripts/generate-narration.py \
+            --config production/narration.json \
+            --project-dir . \
+            --model-dir "$HOME/.cache/ai-video-studio/kokoro-v1.0"
       - name: Read review inputs from commit message
         id: inputs
         shell: bash
@@ -43,6 +64,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Type-check the project
+        run: npm run check
       - name: Render selected still frames (swangle)
         env:
           REVIEW_ROUND: ${{ steps.inputs.outputs.round }}
@@ -54,7 +77,26 @@ jobs:
         run: |
           mkdir -p out/review-artifacts
           /usr/bin/time -f "FINAL_MP4_RENDER_SECONDS=%e" -o out/review-artifacts/render-time.txt npm run render -- "${{ steps.inputs.outputs.composition }}"
-          cp "out/${{ steps.inputs.outputs.composition }}.mp4" out/review-artifacts/
+      - name: Master and validate final MP4 audio
+        if: steps.inputs.outputs.final == 'true'
+        env:
+          COMPOSITION: ${{ steps.inputs.outputs.composition }}
+        run: |
+          VIDEO="out/$COMPOSITION.mp4"
+          if ! ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$VIDEO" | grep -q audio; then
+            echo "Final MP4 has no audio stream." >&2
+            exit 1
+          fi
+          ffmpeg -y -i "$VIDEO" \
+            -af "loudnorm=I=-16:TP=-1.5:LRA=11" \
+            -c:v copy -c:a aac -b:a 192k -movflags +faststart \
+            "out/$COMPOSITION.mastered.mp4"
+          mv "out/$COMPOSITION.mastered.mp4" "$VIDEO"
+          cp "$VIDEO" out/review-artifacts/
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,sample_rate,channels -of json "$VIDEO" > out/review-artifacts/media-probe.json
+          ffmpeg -hide_banner -i "$VIDEO" -af ebur128=framelog=verbose -f null - 2> out/review-artifacts/audio-loudness.txt
+          grep -E "Integrated loudness:|I:|LRA:" out/review-artifacts/audio-loudness.txt | tail -3 | tee out/review-artifacts/audio-validation.txt
+          echo "Mastered MP4 and verified its audio/video streams." | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Collect review images
         run: |
           mkdir -p out/review-artifacts

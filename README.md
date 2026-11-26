@@ -35,3 +35,28 @@ Create each task branch from `main` using the name `review/<slug>`. Push ordinar
 `composition=<id> frames=<comma-separated-frames> round=<n> final=<true|false>`
 
 The metadata identifies the composition and frames to inspect, the review round, and whether to render a final MP4. Commits without `composition=` skip the review-render job. Once the work is approved, merge the review branch into `main` through a pull request.
+
+## Audio and narration
+
+Compositions can use the shared `AudioSystem` from `src/shared/audio/AudioSystem.tsx`.
+It supports one narration track, one music track, independent volume levels, simple
+fade-in/fade-out, and optional music ducking driven by Kokoro word timings.
+
+To enable generated narration for a review render:
+
+1. Copy `production/narration.example.json` to `production/narration.json`.
+2. Replace the example text and choose a supported language/voice.
+3. Push the change to a `review/**` branch. The review workflow downloads/caches
+   Kokoro ONNX model files, generates `public/audio/narration.wav`, and writes
+   word/speech timing data to `src/generated/narration-alignment.ts` before Remotion renders. Final review MP4s are loudness-mastered to -16 LUFS / -1.5 dBTP and checked for both audio and video streams.
+4. The generated WAV is ignored by Git; the final rendered MP4 contains the audio.
+
+Supported initial settings: Spanish (`es`: `ef_dora`, `em_alex`, `em_santa`)
+and US English (`en-us`: `af_heart`, `af_sarah`). Speed must be between 0.5 and 1.5.
+
+For local generation, install `requirements-tts.txt` and run:
+
+```bash
+python scripts/generate-narration.py --config production/narration.json --project-dir . --model-dir ~/.cache/ai-video-studio/kokoro-v1.0
+```
+
