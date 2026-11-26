@@ -8,7 +8,7 @@ const clamp={extrapolateLeft:"clamp" as const,extrapolateRight:"clamp" as const}
 const ease=(f:number,a:number,b:number)=>interpolate(f,[a,b],[0,1],clamp);
 const smooth=(f:number,a:number,b:number)=>{const t=ease(f,a,b);return t*t*(3-2*t)};
 const TAU=Math.PI*2, THETA=Math.PI/5;
-const SIN=Math.sin(THETA),COS=Math.cos(THETA),TAN=Math.tan(THETA);
+const SIN=Math.sin(THETA),COS=Math.cos(THETA);
 const fmt=(n:number)=>n.toFixed(3);
 const polar=(cx:number,cy:number,r:number,a:number)=>({x:cx+r*Math.cos(a),y:cy-r*Math.sin(a)});
 export type SceneId="hook"|"radians"|"triangle"|"sine"|"cosine"|"tangent"|"quadrants"|"pythagorean"|"special"|"recap";
@@ -24,17 +24,17 @@ export const SCENES:{id:SceneId;from:number;duration:number;title:string;subtitl
 {id:"special",from:1170,duration:150,title:"Three angles worth knowing",subtitle:"Some angles have exact values you can recognize instantly.",tag:"09 / SPECIAL ANGLES"},
 {id:"recap",from:1320,duration:120,title:"Three functions. One point.",subtitle:"Read the coordinates — and trigonometry follows.",tag:"10 / RECAP"}
 ];
-export const TRIGONOMETRY_DURATION=SCENES[SCENES.length-1].from+SCENES[SCENES.length-1].duration;
-const active=(f:number)=>[...SCENES].reverse().find(s=>f>=s.from)??SCENES[0];
+export const TRIGONOMETRY_DURATION=SCENES[SCENES.length-1]!.from+SCENES[SCENES.length-1]!.duration;
+const active=(f:number)=>[...SCENES].reverse().find(s=>f>=s.from)??SCENES[0]!;
 const angle=(id:SceneId,f:number,d:number)=>{
  if(id==="hook")return interpolate(f,[0,d-1],[0,TAU*2+THETA],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
  if(id==="sine"||id==="cosine")return THETA*smooth(f,10,d-24);
  if(id==="tangent")return THETA+(Math.PI/2-THETA)*smooth(f,68,d-20);
  if(id==="quadrants")return interpolate(f,[0,d-1],[0,TAU],{extrapolateLeft:"clamp",extrapolateRight:"clamp"});
- if(id==="special")return [Math.PI/6,Math.PI/4,Math.PI/3][Math.min(2,Math.floor(f/42))];
+ if(id==="special")return ([Math.PI/6,Math.PI/4,Math.PI/3][Math.min(2,Math.floor(f/42))] ?? THETA);
  return THETA;
 };
-const tx=(x:number,y:number,s:string,c=C.paper,size=T.body,a:"start"|"middle"|"end"="start",w=650)=><text x={x} y={y} fill={c} fontSize={size} fontWeight={w} textAnchor={a} fontFamily="Inter,Arial,sans-serif" fontVariantNumeric="tabular-nums">{s}</text>;
+const tx=(x:number,y:number,s:string,c:string=C.paper,size=T.body,a:"start"|"middle"|"end"="start",w=650)=><text x={x} y={y} fill={c} fontSize={size} fontWeight={w} textAnchor={a} fontFamily="Inter,Arial,sans-serif" style={{fontVariantNumeric:"tabular-nums"}}>{s}</text>;
 const ln=(x1:number,y1:number,x2:number,y2:number,c:string,w=4,o=1,dash?:string)=><line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={w} strokeLinecap="round" opacity={o} strokeDasharray={dash}/>;
 const poly=(pts:{x:number;y:number}[],c:string,w=5)=><polyline points={pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round"/>;
 
@@ -54,8 +54,8 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  const graphProgress=(id==="sine"||id==="cosine")?smooth(f,8,d-24):0;
  const graph=Array.from({length:90},(_,i)=>{const a=i/89*Math.max(THETA,th);const v=id==="sine"?Math.sin(a):Math.cos(a);return{x:graphX+i/89*graphW*graphProgress,y:graphY-(v+1)*graphH/2}}).filter((_,i)=>i/89<=graphProgress);
  const sinSign=sy>=0?"+":"−",cosSign=co>=0?"+":"−",tanSign=ta>=0?"+":"−";
- const specialIndex=Math.min(2,Math.floor(f/42)),special=[Math.PI/6,Math.PI/4,Math.PI/3][specialIndex];
- const exact=[["1/2","√3/2"],["√2/2","√2/2"],["√3/2","1/2"]][specialIndex];
+ const specialIndex=Math.min(2,Math.floor(f/42)),special=([Math.PI/6,Math.PI/4,Math.PI/3][specialIndex] ?? Math.PI/6);
+ const exact=([["1/2","√3/2"],["√2/2","√2/2"],["√3/2","1/2"]][specialIndex] ?? ["1/2","√3/2"]) as [string,string];
  const square=smooth(f,28,92);
  return <svg viewBox="0 0 1920 1080" width="100%" height="100%" style={{position:"absolute",inset:0}}>
  <defs><linearGradient id="trig-radius"><stop stopColor={C.gold}/><stop offset="1" stopColor={C.coral}/></linearGradient><filter id="trig-shadow"><feGaussianBlur stdDeviation="8"/></filter></defs>
@@ -67,7 +67,7 @@ const Diagram:React.FC<{f:number;id:SceneId;d:number}>=({f,id,d})=>{
  {ln(cx+r,cy-10,cx+r,cy+10,C.gold,3)}{tx(cx+r,cy+42,"1",C.gold,19,"middle")}
  {ln(cx-10,cy-r,cx+10,cy-r,C.gold,3)}{tx(cx-26,cy-r-12,"1",C.gold,19,"end")}
  {ln(cx,cy,p.x,p.y,"url(#trig-radius)",9)}
- <circle cx={p.x} cy={p.y} r="18" fill="#000" opacity=".2" filter="url(#trig-shadow)"/><circle cx={p.x} cy={p.y} r="13" fill={id==="quadrants"?[C.cyan,C.gold,C.coral,C.paper][quad-1]:C.coral} stroke={C.paper} strokeWidth="4"/>
+ <circle cx={p.x} cy={p.y} r="18" fill="#000" opacity=".2" filter="url(#trig-shadow)"/><circle cx={p.x} cy={p.y} r="13" fill={id==="quadrants"?([C.cyan,C.gold,C.coral,C.paper][quad-1] ?? C.coral):C.coral} stroke={C.paper} strokeWidth="4"/>
  {tx(p.x+22,p.y-20,`(${fmt(co)}, ${fmt(sy)})`,C.paper,19)}
  <path d={`M ${cx+66} ${cy} A 66 66 0 0 0 ${cx+66*Math.cos(th)} ${cy-66*Math.sin(th)}`} fill="none" stroke={C.gold} strokeWidth="5" strokeLinecap="round"/>
  {tx(cx+96,cy-40,id==="special"?`${[30,45,60][specialIndex]}°`:"θ",C.gold,24)}
