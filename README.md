@@ -64,3 +64,5 @@ python scripts/generate-narration.py --config production/narration.json --projec
 ### DawnBalloon sound-design experiment
 
 DawnBalloon now uses a separate SFX bus. Its cue manifest is generated from the visible balloon lift, scene transitions, and cloth movement. The review workflow installs [Earshot](https://github.com/Leonxlnx/earshot) and deterministically renders the selected designs on the CPU; WAVs are build artifacts rather than committed binaries. Each transient is placed using Earshot's measured peak offset so the audible peak, not merely the file start, lands on the intended event. The existing Kokoro narration and ambient music remain separate and unchanged.
+
+Review artifacts for DawnBalloon include the generated WAV cues and their resolved timing manifest alongside the mastered MP4.
