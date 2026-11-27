@@ -19,6 +19,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Install FFmpeg for mastering and media validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
       - name: Set up Python for optional Kokoro narration
         if: hashFiles('production/narration.json') != ''
         uses: actions/setup-python@v5
@@ -30,9 +34,11 @@ jobs:
         with:
           path: ~/.cache/ai-video-studio/kokoro-v1.0
           key: kokoro-onnx-0.6.1-model-files-v1.1-${{ runner.os }}
-      - name: Install optional Kokoro dependencies
+      - name: Install audio generation dependencies
         if: hashFiles('production/narration.json') != ''
-        run: python -m pip install --disable-pip-version-check -r requirements-tts.txt
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-tts.txt
+          python -m pip install --disable-pip-version-check "earshot @ git+https://github.com/Leonxlnx/earshot"
       - name: Generate narration and word timings
         if: hashFiles('production/narration.json') != ''
         run: |
@@ -40,6 +46,9 @@ jobs:
             --config production/narration.json \
             --project-dir . \
             --model-dir "$HOME/.cache/ai-video-studio/kokoro-v1.0"
+      - name: Generate DawnBalloon sound effects
+        if: contains(github.event.head_commit.message, 'composition=DawnBalloon')
+        run: python scripts/generate-dawn-balloon-sfx.py
       - name: Read review inputs from commit message
         id: inputs
         shell: bash
