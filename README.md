@@ -39,8 +39,7 @@ The metadata identifies the composition and frames to inspect, the review round,
 ## Audio and narration
 
 Compositions can use the shared `AudioSystem` from `src/shared/audio/AudioSystem.tsx`.
-It supports one narration track, one music track, independent volume levels, simple
-fade-in/fade-out, and optional music ducking driven by Kokoro word timings.
+It supports narration, music with timing-based ducking, and independently scheduled sound-effect cues with per-cue and bus volume.
 
 To enable generated narration for a review render:
 
@@ -60,3 +59,8 @@ For local generation, install `requirements-tts.txt` and run:
 python scripts/generate-narration.py --config production/narration.json --project-dir . --model-dir ~/.cache/ai-video-studio/kokoro-v1.0
 ```
 
+
+
+### DawnBalloon sound-design experiment
+
+DawnBalloon now uses a separate SFX bus. Its cue manifest is generated from the visible balloon lift, scene transitions, and cloth movement. The review workflow installs [Earshot](https://github.com/Leonxlnx/earshot) and deterministically renders the selected designs on the CPU; WAVs are build artifacts rather than committed binaries. Each transient is placed using Earshot's measured peak offset so the audible peak, not merely the file start, lands on the intended event. The existing Kokoro narration and ambient music remain separate and unchanged.
