@@ -98,7 +98,7 @@ jobs:
           fi
           ffmpeg -y -i "$VIDEO" \
             -af "loudnorm=I=-16:TP=-1.5:LRA=11" \
-            -c:v copy -c:a aac -b:a 192k -movflags +faststart \
+            -c:v copy -c:a aac -b:a 192k -ar 48000 -movflags +faststart \
             "out/$COMPOSITION.mastered.mp4"
           mv "out/$COMPOSITION.mastered.mp4" "$VIDEO"
           cp "$VIDEO" out/review-artifacts/
@@ -111,6 +111,10 @@ jobs:
           mkdir -p out/review-artifacts
           cp -R "out/review/${{ steps.inputs.outputs.composition }}/${{ steps.inputs.outputs.round }}" out/review-artifacts/frames
           cp -R "out/review/${{ steps.inputs.outputs.composition }}/contact-sheet" out/review-artifacts/contact-sheet
+          if [[ "${{ steps.inputs.outputs.composition }}" == "DawnBalloon" ]]; then
+            cp -R public/audio/sfx out/review-artifacts/sfx
+            cp src/generated/dawn-balloon-sfx.ts out/review-artifacts/dawn-balloon-sfx.ts
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: review-${{ steps.inputs.outputs.composition }}-round-${{ steps.inputs.outputs.round }}
